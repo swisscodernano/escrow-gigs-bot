@@ -430,6 +430,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def run_bot_background():
     print("--- Avvio del Bot ---")
+    print(f"--- TOKEN LETTO: {settings.BOT_TOKEN} ---")
     app = Application.builder().token(settings.BOT_TOKEN).defaults(Defaults(parse_mode=None)).build()
     
     # Gestori Comandi
