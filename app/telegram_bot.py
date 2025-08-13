@@ -423,6 +423,30 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             keyboard.append([InlineKeyboardButton("✅ Rilascia Fondi", callback_data=f"release:{order.id}")])
         if order.status == "RELEASED":
              keyboard.append([InlineKeyboardButton("⭐ Lascia Feedback", callback_data=f"feedback:{order.id}")])
+    
+    elif action == "release":
+        oid = int(value)
+        u = await ensure_user(query.from_user)
+        db = db_session()
+        user_obj = db.query(User).filter(User.tg_id==str(u.tg_id)).first()
+        order = db.query(Order).filter(Order.id==oid, Order.buyer_id==user_obj.id).first()
+
+        if not order:
+            await query.edit_message_text("Ordine non trovato o non sei l'acquirente.")
+            db.close(); return
+        
+        if order.status != "FUNDS_HELD":
+            await query.edit_message_text("I fondi non sono in garanzia.")
+            db.close(); return
+
+        order.status = "RELEASED"
+        db.commit()
+        
+        from app.tasks import process_withdrawal
+        process_withdrawal.delay(order.id)
+
+        await query.edit_message_text("✅ Rilascio confermato. Il pagamento è in corso di elaborazione.")
+        db.close()
         
         reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
         db.close()
