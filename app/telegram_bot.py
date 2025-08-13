@@ -430,7 +430,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def run_bot_background():
     print("--- Avvio del Bot ---")
-    print(f"--- TOKEN LETTO: {settings.BOT_TOKEN} ---")
+    if not settings.BOT_TOKEN:
+        print("ERRORE: BOT_TOKEN non impostato. Controlla il tuo file .env")
+        return
+
+    print(f"--- TOKEN LETTO: ...{settings.BOT_TOKEN[-4:]} ---")
     app = Application.builder().token(settings.BOT_TOKEN).defaults(Defaults(parse_mode=None)).build()
     
     # Gestori Comandi
@@ -450,7 +454,12 @@ async def run_bot_background():
     app.add_handler(CallbackQueryHandler(button_handler))
 
     print("Inizializzazione...")
-    await app.initialize()
+    try:
+        await app.initialize()
+    except InvalidToken:
+        print("ERRORE: Token non valido. Generane uno nuovo da @BotFather.")
+        return
+        
     print("Avvio...")
     await app.start()
     print("Avvio Polling...")

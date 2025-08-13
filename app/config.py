@@ -2,7 +2,7 @@ import os
 from pydantic import BaseModel
 
 class Settings(BaseModel):
-    BOT_TOKEN: str = os.getenv("BOT_TOKEN", "")
+    BOT_TOKEN: str = os.getenv("BOT_TOKEN", "").strip()
     ADMIN_USER_ID: int = int(os.getenv("ADMIN_USER_ID", "0"))
     APP_ENV: str = os.getenv("APP_ENV", "dev")
     APP_HOST: str = os.getenv("APP_HOST", "0.0.0.0")
