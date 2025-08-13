@@ -1,8 +1,6 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
+    build: .
     env_file:
       - .env
     depends_on:
@@ -13,9 +11,7 @@ services:
     command: bash -lc "python wait_db.py && python migrate.py && uvicorn app:app --host 0.0.0.0 --port 8000"
 
   bot:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
+    build: .
     env_file:
       - .env
     depends_on:
@@ -24,9 +20,7 @@ services:
     command: bash -lc "python run_bot.py"
 
   worker:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
+    build: .
     env_file:
       - .env
     depends_on:
