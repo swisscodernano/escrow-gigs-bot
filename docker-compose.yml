@@ -21,7 +21,7 @@ services:
     depends_on:
       - db
     restart: unless-stopped
-    command: bash -lc "python run_bot.py"
+    command: bash -lc "PYTHONPATH=/app python run_bot.py"
 
   worker:
     build:
