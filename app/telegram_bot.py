@@ -2,7 +2,7 @@ import asyncio
 from decimal import Decimal
 from app.config import settings
 from app.db import SessionLocal
-from app.models import User, Gig, Order, Dispute
+from app.models import User, Gig, Order, Dispute, Feedback
 from app.payment.ledger import new_deposit_address
 from app.payment.tron_stub import validate_deposit_tx
 
@@ -29,7 +29,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ensure_user(update.effective_user)
     await update.message.reply_text(
         "👋 Benvenuto nel *Gigs Escrow Bot*\n"
-        "/newgig | /listings | /mygigs | /buy <id> | /orders | /order <id>")
+        "/newgig | /listings | /mygigs | /buy <id> | /orders | /order <id> | /feedback <id> <punteggio> [commento]")
 
 async def cmd_newgig(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = await ensure_user(update.effective_user)
@@ -312,6 +312,67 @@ async def cmd_order_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db.close()
     await update.message.reply_text("\n".join(details))
 
+async def cmd_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    args = (update.message.text or "").split(" ", 3)
+    if len(args) < 3:
+        await update.message.reply_text("Uso: /feedback <order_id> <punteggio 1-5> [commento]")
+        return
+    try:
+        oid = int(args[1])
+        score = int(args[2])
+        if not 1 <= score <= 5: raise ValueError()
+    except:
+        await update.message.reply_text("ID ordine o punteggio non validi.")
+        return
+    comment = args[3].strip() if len(args) > 3 else ""
+
+    u = await ensure_user(update.effective_user)
+    db = db_session()
+    user_obj = db.query(User).filter(User.tg_id==str(u.tg_id)).first()
+    order = db.query(Order).filter(Order.id==oid).first()
+
+    if not order or (order.buyer_id != user_obj.id and order.seller_id != user_obj.id):
+        await update.message.reply_text("Ordine non trovato.")
+        db.close(); return
+    
+    if order.status != "RELEASED":
+        await update.message.reply_text("Puoi lasciare un feedback solo per ordini completati.")
+        db.close(); return
+
+    # Determina chi sta recensendo chi
+    if user_obj.id == order.buyer_id:
+        reviewer_id = order.buyer_id
+        reviewee_id = order.seller_id
+    else: # L'utente è il venditore
+        reviewer_id = order.seller_id
+        reviewee_id = order.buyer_id
+
+    # Controlla se esiste già un feedback per questo ordine da parte di questo utente
+    existing_feedback = db.query(Feedback).filter(Feedback.order_id == oid, Feedback.reviewer_id == reviewer_id).first()
+    if existing_feedback:
+        await update.message.reply_text("Hai già lasciato un feedback per questo ordine.")
+        db.close(); return
+
+    fb = Feedback(order_id=oid, reviewer_id=reviewer_id, reviewee_id=reviewee_id, score=score, comment=comment)
+    db.add(fb); db.commit() # Removed db.close() here to allow for the next operation
+    
+    # Notifica l'altro utente
+    try:
+        other_user = db.query(User).filter(User.id==reviewee_id).first()
+        await context.bot.send_message(
+            chat_id=other_user.tg_id,
+            text=f"Hai ricevuto un nuovo feedback per l'ordine #{oid}: {score}/5"
+        )
+    except Exception as e:
+        print(f"Errore nell'invio notifica feedback: {e}")
+
+    db.close()
+    await update.message.reply_text("✅ Grazie per il tuo feedback!")
+
+async def cmd_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # ... implementazione futura ...
+    await update.message.reply_text("Funzione profilo in arrivo.")
+
 async def run_bot_background():
     app = Application.builder().token(settings.BOT_TOKEN).defaults(Defaults(parse_mode=None)).build()
     app.add_handler(CommandHandler("start", cmd_start))
@@ -325,6 +386,8 @@ async def run_bot_background():
     app.add_handler(CommandHandler("dispute", cmd_dispute))
     app.add_handler(CommandHandler("orders", cmd_orders))
     app.add_handler(CommandHandler("order", cmd_order_details))
+    app.add_handler(CommandHandler("feedback", cmd_feedback))
+    app.add_handler(CommandHandler("profile", cmd_profile))
 
     await app.initialize()
     await app.start()
