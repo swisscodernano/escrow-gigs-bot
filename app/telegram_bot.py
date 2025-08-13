@@ -6,8 +6,8 @@ from app.models import User, Gig, Order, Dispute, Feedback
 from app.payment.ledger import new_deposit_address
 from app.payment.tron_stub import validate_deposit_tx
 
-from telegram import Update
-from telegram.ext import Defaults, Application, CommandHandler, ContextTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Defaults, Application, CommandHandler, ContextTypes, CallbackQueryHandler
 
 def db_session():
     return SessionLocal()
@@ -29,7 +29,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ensure_user(update.effective_user)
     await update.message.reply_text(
         "👋 Benvenuto nel *Gigs Escrow Bot*\n"
-        "/newgig | /listings | /mygigs | /buy <id> | /orders | /order <id> | /feedback <id> <punteggio> [commento]")
+        "/newgig | /listings | /mygigs | /orders")
 
 async def cmd_newgig(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = await ensure_user(update.effective_user)
@@ -83,16 +83,22 @@ async def cmd_newgigbtc(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_listings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db = db_session()
-    gigs = db.query(Gig).filter(Gig.active==True).order_by(Gig.id.desc()).limit(20).all()
+    gigs = db.query(Gig).filter(Gig.active==True).order_by(Gig.id.desc()).limit(10).all()
     db.close()
     if not gigs:
         await update.message.reply_text("Nessun annuncio al momento. /newgig")
         return
-    lines = ["📋 *Annunci:*"]
+    
+    await update.message.reply_text("📋 *Annunci Recenti:*")
     for g in gigs:
-        lines.append(f"#{g.id} — *{g.title}* — ${g.price_usd} — {g.currency}")
-    lines.append("\nCompra: /buy <id>")
-    await update.message.reply_text("\n".join(lines))
+        keyboard = [[InlineKeyboardButton("🛒 Compra", callback_data=f"buy:{g.id}")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(
+            f"#{g.id} — *{g.title}*\n"
+            f"_{g.description or 'Nessuna descrizione'}_ \n"
+            f"Prezzo: *{g.price_usd} {g.currency}*",
+            reply_markup=reply_markup
+        )
 
 async def cmd_mygigs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u = await ensure_user(update.effective_user)
@@ -354,7 +360,7 @@ async def cmd_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         db.close(); return
 
     fb = Feedback(order_id=oid, reviewer_id=reviewer_id, reviewee_id=reviewee_id, score=score, comment=comment)
-    db.add(fb); db.commit() # Removed db.close() here to allow for the next operation
+    db.add(fb); db.commit()
     
     # Notifica l'altro utente
     try:
@@ -373,6 +379,47 @@ async def cmd_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ... implementazione futura ...
     await update.message.reply_text("Funzione profilo in arrivo.")
 
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    action, value = query.data.split(":")
+    
+    if action == "buy":
+        gig_id = int(value)
+        buyer = await ensure_user(query.from_user)
+        db = db_session()
+        g = db.query(Gig).filter(Gig.id==gig_id, Gig.active==True).first()
+        if not g:
+            db.close()
+            await query.edit_message_text("Annuncio non più disponibile.")
+            return
+        
+        buyer_obj = db.query(User).filter(User.tg_id==str(buyer.tg_id)).first()
+        o = Order(gig_id=g.id, buyer_id=buyer_obj.id, seller_id=g.seller_id,
+                  status="AWAIT_DEPOSIT", expected_amount=g.price_usd, escrow_fee_pct=8.00)
+        db.add(o); db.commit(); db.refresh(o)
+        dep = new_deposit_address(o.id, g.currency)
+        o.deposit_address = dep.address
+        db.commit(); db.refresh(o)
+        
+        # Notifica al venditore
+        try:
+            seller_tg_id = o.seller.tg_id
+            await context.bot.send_message(
+                chat_id=seller_tg_id,
+                text=f"🔔 Nuovo ordine ricevuto per l'annuncio #{g.id} da @{buyer.username or 'utente'}. In attesa di deposito."
+            )
+        except Exception as e:
+            print(f"Errore nell'invio notifica al venditore {o.seller_id}: {e}")
+
+        db.close()
+        await query.edit_message_text(
+            "🛡️ Ordine creato. Deposita *{amt}* in {asset} all\'indirizzo:\n`{addr}`\n\n"
+            "Dopo il pagamento: /confirm_tx {oid} <txid>"
+            .format(amt=g.price_usd, asset=g.currency, addr=o.deposit_address, oid=o.id)
+        )
+
 async def run_bot_background():
     app = Application.builder().token(settings.BOT_TOKEN).defaults(Defaults(parse_mode=None)).build()
     app.add_handler(CommandHandler("start", cmd_start))
@@ -388,6 +435,7 @@ async def run_bot_background():
     app.add_handler(CommandHandler("order", cmd_order_details))
     app.add_handler(CommandHandler("feedback", cmd_feedback))
     app.add_handler(CommandHandler("profile", cmd_profile))
+    app.add_handler(CallbackQueryHandler(button_handler))
 
     await app.initialize()
     await app.start()
