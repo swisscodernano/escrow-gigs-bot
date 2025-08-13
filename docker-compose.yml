@@ -8,7 +8,10 @@ services:
     expose:
       - "8000"     # visibile solo nella rete docker
     restart: unless-stopped
-    command: bash -lc "python wait_db.py && python migrate.py && uvicorn app:app --host 0.0.0.0 --port 8000"
+    working_dir: /app
+    environment:
+      - PYTHONPATH=/app
+    command: bash -lc "python app/wait_db.py && python app/migrate.py && uvicorn app.app:app --host 0.0.0.0 --port 8000"
 
   bot:
     build: .
@@ -17,6 +20,9 @@ services:
     depends_on:
       - db
     restart: unless-stopped
+    working_dir: /app
+    environment:
+      - PYTHONPATH=/app
     command: bash -lc "python run_bot.py"
 
   worker:
@@ -27,7 +33,10 @@ services:
       - db
       - redis
     restart: unless-stopped
-    command: bash -lc "celery -A tasks worker --loglevel=info"
+    working_dir: /app
+    environment:
+      - PYTHONPATH=/app
+    command: bash -lc "celery -A app.tasks worker --loglevel=info"
 
   db:
     image: postgres:15

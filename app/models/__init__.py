@@ -49,7 +49,7 @@ class Dispute(Base):
     status: Mapped[str] = mapped_column(String(32), default="OPEN")
     created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-from .wallet import Wallet, Transaction
-from .feedback import Feedback
+from app.wallet import Wallet, Transaction
+from app.feedback import Feedback
 
 __all__ = ["User", "Gig", "Order", "Dispute", "Wallet", "Transaction", "Feedback"]

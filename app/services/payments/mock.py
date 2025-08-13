@@ -1,7 +1,7 @@
 import uuid
 from decimal import Decimal
 from typing import Any, Dict
-from .base import BaseProvider
+from app.base import BaseProvider
 
 class MockProvider(BaseProvider):
     def create_checkout(self, user_id: int, amount: Decimal, currency: str) -> Dict[str, Any]:
