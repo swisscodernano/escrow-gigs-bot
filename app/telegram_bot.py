@@ -27,9 +27,13 @@ async def ensure_user(tg_user) -> User:
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ensure_user(update.effective_user)
-    await update.message.reply_text(
-        "👋 Benvenuto nel *Gigs Escrow Bot*\n"
-        "/newgig | /listings | /mygigs | /orders")
+    keyboard = [
+        [InlineKeyboardButton("📋 Annunci", callback_data="listings")],
+        [InlineKeyboardButton("📦 I Miei Ordini", callback_data="orders")],
+        [InlineKeyboardButton("🧾 I Miei Annunci", callback_data="mygigs")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("👋 *Benvenuto nel Gigs Escrow Bot*", reply_markup=reply_markup)
 
 async def cmd_newgig(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = await ensure_user(update.effective_user)
@@ -113,47 +117,6 @@ async def cmd_mygigs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for g in gigs:
         lines.append(f"#{g.id} — *{g.title}* — ${g.price_usd} — {g.currency} — {'ON' if g.active else 'OFF'}")
     await update.message.reply_text("\n".join(lines))
-
-async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    args = (update.message.text or "").split()
-    if len(args) < 2:
-        await update.message.reply_text("Uso: /buy <gig_id>")
-        return
-    try:
-        gig_id = int(args[1])
-    except:
-        await update.message.reply_text("ID non valido.")
-        return
-    buyer = await ensure_user(update.effective_user)
-    db = db_session()
-    g = db.query(Gig).filter(Gig.id==gig_id, Gig.active==True).first()
-    if not g:
-        db.close()
-        await update.message.reply_text("Annuncio non trovato o inattivo.")
-        return
-    buyer_obj = db.query(User).filter(User.tg_id==str(buyer.tg_id)).first()
-    o = Order(gig_id=g.id, buyer_id=buyer_obj.id, seller_id=g.seller_id,
-              status="AWAIT_DEPOSIT", expected_amount=g.price_usd, escrow_fee_pct=8.00)
-    db.add(o); db.commit(); db.refresh(o)
-    dep = new_deposit_address(o.id, g.currency)
-    o.deposit_address = dep.address
-    db.commit(); db.refresh(o)
-    
-    # Notifica al venditore
-    try:
-        seller_tg_id = o.seller.tg_id
-        await context.bot.send_message(
-            chat_id=seller_tg_id,
-            text=f"🔔 Nuovo ordine ricevuto per l'annuncio #{g.id} da @{buyer.username or 'utente'}. In attesa di deposito."
-        )
-    except Exception as e:
-        print(f"Errore nell'invio notifica al venditore {o.seller_id}: {e}")
-
-    db.close()
-    await update.message.reply_text(
-        "🛡️ Ordine creato. Deposita *{amt}* in {asset} all\'indirizzo:\n`{addr}`\n\n"
-        "Dopo il pagamento: /confirm_tx {oid} <txid>"
-        .format(amt=g.price_usd, asset=g.currency, addr=o.deposit_address, oid=o.id))
 
 async def cmd_confirm_tx(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = (update.message.text or "").split()
@@ -272,51 +235,16 @@ async def cmd_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not orders:
         await update.message.reply_text("Nessun ordine.")
         return
-    lines = ["📦 *Ordini:*"]
+    
+    await update.message.reply_text("📦 *I tuoi ordini recenti:*")
     for o in orders:
-        lines.append(f"#{o.id} — {o.status} — ${o.expected_amount} — {o.deposit_address or '-'}")
-    await update.message.reply_text("\n".join(lines))
-
-async def cmd_order_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    args = (update.message.text or "").split()
-    if len(args) < 2:
-        await update.message.reply_text("Uso: /order <order_id>")
-        return
-    try:
-        oid = int(args[1])
-    except:
-        await update.message.reply_text("ID ordine non valido.")
-        return
-    
-    u = await ensure_user(update.effective_user)
-    db = db_session()
-    user_obj = db.query(User).filter(User.tg_id==str(u.tg_id)).first()
-    order = db.query(Order).filter(Order.id==oid).first()
-    
-    if not order or (order.buyer_id != user_obj.id and order.seller_id != user_obj.id):
-        db.close()
-        await update.message.reply_text("Ordine non trovato o non hai i permessi per vederlo.")
-        return
-
-    gig = order.gig
-    buyer = order.buyer
-    seller = order.seller
-    
-    details = [
-        f"📦 *Dettagli Ordine #{order.id}*",
-        f"🏷️ *Annuncio:* {gig.title}",
-        f"💲 *Importo:* {order.expected_amount} {gig.currency}",
-        f"👤 *Venditore:* @{seller.username}",
-        f"👤 *Acquirente:* @{buyer.username}",
-        f"🚦 *Stato:* {order.status}",
-    ]
-    if order.deposit_address:
-        details.append(f"🏦 *Indirizzo Deposito:* `{order.deposit_address}`")
-    if order.txid:
-        details.append(f"🔗 *TXID:* `{order.txid}`")
-
-    db.close()
-    await update.message.reply_text("\n".join(details))
+        keyboard = [[InlineKeyboardButton("📄 Dettagli", callback_data=f"order:{o.id}")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(
+            f"Ordine #{o.id} | *{o.gig.title}*\n"
+            f"Stato: *{o.status}* | Importo: *{o.expected_amount} {o.gig.currency}*",
+            reply_markup=reply_markup
+        )
 
 async def cmd_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = (update.message.text or "").split(" ", 3)
@@ -345,15 +273,11 @@ async def cmd_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Puoi lasciare un feedback solo per ordini completati.")
         db.close(); return
 
-    # Determina chi sta recensendo chi
     if user_obj.id == order.buyer_id:
-        reviewer_id = order.buyer_id
-        reviewee_id = order.seller_id
-    else: # L'utente è il venditore
-        reviewer_id = order.seller_id
-        reviewee_id = order.buyer_id
+        reviewer_id, reviewee_id = order.buyer_id, order.seller_id
+    else:
+        reviewer_id, reviewee_id = order.seller_id, order.buyer_id
 
-    # Controlla se esiste già un feedback per questo ordine da parte di questo utente
     existing_feedback = db.query(Feedback).filter(Feedback.order_id == oid, Feedback.reviewer_id == reviewer_id).first()
     if existing_feedback:
         await update.message.reply_text("Hai già lasciato un feedback per questo ordine.")
@@ -362,13 +286,9 @@ async def cmd_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     fb = Feedback(order_id=oid, reviewer_id=reviewer_id, reviewee_id=reviewee_id, score=score, comment=comment)
     db.add(fb); db.commit()
     
-    # Notifica l'altro utente
     try:
         other_user = db.query(User).filter(User.id==reviewee_id).first()
-        await context.bot.send_message(
-            chat_id=other_user.tg_id,
-            text=f"Hai ricevuto un nuovo feedback per l'ordine #{oid}: {score}/5"
-        )
+        await context.bot.send_message(chat_id=other_user.tg_id, text=f"Hai ricevuto un nuovo feedback per l'ordine #{oid}: {score}/5")
     except Exception as e:
         print(f"Errore nell'invio notifica feedback: {e}")
 
@@ -376,12 +296,11 @@ async def cmd_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ Grazie per il tuo feedback!")
 
 async def cmd_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # ... implementazione futura ...
     await update.message.reply_text("Funzione profilo in arrivo.")
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
+    await query.answer() 
     
     action, value = query.data.split(":")
     
@@ -403,7 +322,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         o.deposit_address = dep.address
         db.commit(); db.refresh(o)
         
-        # Notifica al venditore
         try:
             seller_tg_id = o.seller.tg_id
             await context.bot.send_message(
@@ -419,6 +337,47 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Dopo il pagamento: /confirm_tx {oid} <txid>"
             .format(amt=g.price_usd, asset=g.currency, addr=o.deposit_address, oid=o.id)
         )
+    
+    elif action == "order":
+        oid = int(value)
+        u = await ensure_user(query.from_user)
+        db = db_session()
+        user_obj = db.query(User).filter(User.tg_id==str(u.tg_id)).first()
+        order = db.query(Order).filter(Order.id==oid).first()
+        
+        if not order or (order.buyer_id != user_obj.id and order.seller_id != user_obj.id):
+            db.close()
+            await query.edit_message_text("Ordine non trovato o non hai i permessi per vederlo.")
+            return
+
+        gig = order.gig
+        buyer = order.buyer
+        seller = order.seller
+        
+        details = [
+            f"📦 *Dettagli Ordine #{order.id}*",
+            f"🏷️ *Annuncio:* {gig.title}",
+            f"💲 *Importo:* {order.expected_amount} {gig.currency}",
+            f"👤 *Venditore:* @{seller.username}",
+            f"👤 *Acquirente:* @{buyer.username}",
+            f"🚦 *Stato:* {order.status}",
+        ]
+        if order.deposit_address:
+            details.append(f"🏦 *Indirizzo Deposito:* `{order.deposit_address}`")
+        if order.txid:
+            details.append(f"🔗 *TXID:* `{order.txid}`")
+
+        keyboard = []
+        # Aggiungi pulsanti contestuali
+        if order.status == "FUNDS_HELD" and user_obj.id == order.buyer_id:
+            keyboard.append([InlineKeyboardButton("✅ Rilascia Fondi", callback_data=f"release:{order.id}")])
+        if order.status == "RELEASED":
+             keyboard.append([InlineKeyboardButton("⭐ Lascia Feedback", callback_data=f"feedback:{order.id}")])
+        
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+        db.close()
+        await query.edit_message_text("\n".join(details), reply_markup=reply_markup)
+
 
 async def run_bot_background():
     app = Application.builder().token(settings.BOT_TOKEN).defaults(Defaults(parse_mode=None)).build()
@@ -427,12 +386,13 @@ async def run_bot_background():
     app.add_handler(CommandHandler("newgigbtc", cmd_newgigbtc))
     app.add_handler(CommandHandler("listings", cmd_listings))
     app.add_handler(CommandHandler("mygigs", cmd_mygigs))
-    app.add_handler(CommandHandler("buy", cmd_buy))
+    # Rimuovi i vecchi comandi testuali che sono stati sostituiti da pulsanti
+    # app.add_handler(CommandHandler("buy", cmd_buy))
+    # app.add_handler(CommandHandler("order", cmd_order_details))
+    app.add_handler(CommandHandler("orders", cmd_orders))
     app.add_handler(CommandHandler("confirm_tx", cmd_confirm_tx))
     app.add_handler(CommandHandler("release", cmd_release))
     app.add_handler(CommandHandler("dispute", cmd_dispute))
-    app.add_handler(CommandHandler("orders", cmd_orders))
-    app.add_handler(CommandHandler("order", cmd_order_details))
     app.add_handler(CommandHandler("feedback", cmd_feedback))
     app.add_handler(CommandHandler("profile", cmd_profile))
     app.add_handler(CallbackQueryHandler(button_handler))
