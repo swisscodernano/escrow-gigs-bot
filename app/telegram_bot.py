@@ -429,29 +429,43 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def run_bot_background():
-    app = Application.builder().token(settings.BOT_TOKEN).defaults(Defaults(parse_mode=None)).build()
-    app.add_handler(CommandHandler("start", cmd_start))
-    app.add_handler(CommandHandler("newgig", cmd_newgig))
-    app.add_handler(CommandHandler("newgigbtc", cmd_newgigbtc))
-    app.add_handler(CommandHandler("listings", cmd_listings))
-    app.add_handler(CommandHandler("mygigs", cmd_mygigs))
-    # Rimuovi i vecchi comandi testuali che sono stati sostituiti da pulsanti
-    # app.add_handler(CommandHandler("buy", cmd_buy))
-    # app.add_handler(CommandHandler("order", cmd_order_details))
-    app.add_handler(CommandHandler("orders", cmd_orders))
-    app.add_handler(CommandHandler("confirm_tx", cmd_confirm_tx))
-    app.add_handler(CommandHandler("release", cmd_release))
-    app.add_handler(CommandHandler("dispute", cmd_dispute))
-    app.add_handler(CommandHandler("feedback", cmd_feedback))
-    app.add_handler(CommandHandler("profile", cmd_profile))
-    app.add_handler(CallbackQueryHandler(button_handler))
-
-    await app.initialize()
-    await app.start()
+    print("--- Avvio del Bot ---")
     try:
+        print("[1/5] Creazione dell'applicazione...")
+        app = Application.builder().token(settings.BOT_TOKEN).defaults(Defaults(parse_mode=None)).build()
+        print("[2/5] Aggiunta dei gestori comandi...")
+        app.add_handler(CommandHandler("start", cmd_start))
+        app.add_handler(CommandHandler("newgig", cmd_newgig))
+        app.add_handler(CommandHandler("newgigbtc", cmd_newgigbtc))
+        app.add_handler(CommandHandler("listings", cmd_listings))
+        app.add_handler(CommandHandler("mygigs", cmd_mygigs))
+        app.add_handler(CommandHandler("orders", cmd_orders))
+        app.add_handler(CommandHandler("confirm_tx", cmd_confirm_tx))
+        app.add_handler(CommandHandler("release", cmd_release))
+        app.add_handler(CommandHandler("dispute", cmd_dispute))
+        app.add_handler(CommandHandler("feedback", cmd_feedback))
+        app.add_handler(CommandHandler("profile", cmd_profile))
+        app.add_handler(CallbackQueryHandler(button_handler))
+
+        print("[3/5] Inizializzazione dell'applicazione...")
+        await app.initialize()
+        print("[4/5] Avvio dell'applicazione...")
+        await app.start()
+        print("[5/5] Avvio del polling per ricevere messaggi...")
         await app.updater.start_polling()
+        print("--- ✅ Bot avviato con successo e in ascolto ---")
+        
+        while True:
+            await asyncio.sleep(3600)
+            
+    except Exception as e:
+        print(f"❌ ERRORE CRITICO DURANTE L'AVVIO: {e}")
+        # Aggiungiamo un loop per mantenere il container attivo e poter leggere l'errore
         while True:
             await asyncio.sleep(3600)
     finally:
-        await app.updater.stop()
-        await app.stop()
+        print("--- Arresto del Bot ---")
+        if 'app' in locals() and app.updater:
+            await app.updater.stop()
+        if 'app' in locals():
+            await app.stop()
