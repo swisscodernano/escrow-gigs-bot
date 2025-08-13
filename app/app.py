@@ -8,7 +8,10 @@ from app.api.webhooks import router as webhooks_router
 async def lifespan(app: FastAPI):
     # startup
     try:
-        app.state.bot_task = asyncio.create_task(run_bot_background())
+        @app.on_event("startup")
+async def startup_event():
+    # You can add any startup logic here if needed
+    pass
         logging.info("Bot task scheduled.")
     except Exception as e:
         logging.exception("Bot not started: %s", e)
