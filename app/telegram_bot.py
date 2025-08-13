@@ -8,6 +8,7 @@ from app.payment.tron_stub import validate_deposit_tx
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Defaults, Application, CommandHandler, ContextTypes, CallbackQueryHandler
+from telegram.error import InvalidToken
 
 def db_session():
     return SessionLocal()
@@ -426,7 +427,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
         db.close()
         await query.edit_message_text("\n".join(details), reply_markup=reply_markup)
-
 
 async def run_bot_background():
     print("--- Avvio del Bot ---")
