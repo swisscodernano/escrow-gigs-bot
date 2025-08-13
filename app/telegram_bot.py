@@ -295,8 +295,57 @@ async def cmd_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db.close()
     await update.message.reply_text("✅ Grazie per il tuo feedback!")
 
+from sqlalchemy.orm import aliased
+from sqlalchemy import func
+
 async def cmd_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Funzione profilo in arrivo.")
+    args = (update.message.text or "").split()
+    db = db_session()
+    
+    target_username = args[1].lstrip('@') if len(args) > 1 else update.effective_user.username
+    if not target_username:
+        await update.message.reply_text("Specifica un username o assicurati di averne uno impostato su Telegram.")
+        db.close()
+        return
+
+    user = db.query(User).filter(User.username == target_username).first()
+    if not user:
+        await update.message.reply_text(f"Utente @{target_username} non trovato.")
+        db.close()
+        return
+
+    # Calcola statistiche feedback
+    feedbacks = db.query(Feedback).filter(Feedback.reviewee_id == user.id).all()
+    
+    if not feedbacks:
+        avg_score = "N/A"
+        feedback_count = 0
+    else:
+        total_score = sum(f.score for f in feedbacks)
+        feedback_count = len(feedbacks)
+        avg_score = f"{total_score / feedback_count:.1f}/5"
+
+    # Statistiche vendite e acquisti
+    sales_count = db.query(Order).filter(Order.seller_id == user.id, Order.status == "RELEASED").count()
+    purchases_count = db.query(Order).filter(Order.buyer_id == user.id, Order.status == "RELEASED").count()
+
+    profile_text = [
+        f"👤 *Profilo di @{user.username}*",
+        f"⭐ *Reputazione:* {avg_score} ({feedback_count} recensioni)",
+        f"🛒 *Acquisti completati:* {purchases_count}",
+        f"💰 *Vendite completate:* {sales_count}",
+    ]
+
+    # Ultimi commenti
+    latest_feedbacks = db.query(Feedback).filter(Feedback.reviewee_id == user.id).order_by(Feedback.created_at.desc()).limit(3).all()
+    if latest_feedbacks:
+        profile_text.append("\n*Ultimi commenti:*")
+        for fb in latest_feedbacks:
+            reviewer = fb.reviewer.username or "Utente"
+            profile_text.append(f'🗣️ @{reviewer}: "{fb.comment}" ({fb.score}/5)')
+
+    db.close()
+    await update.message.reply_text("\n".join(profile_text))
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
