@@ -463,7 +463,7 @@ async def run_bot_background():
     print("Avvio...")
     await app.start()
     print("Avvio Polling...")
-    await app.updater.start_polling()
+    await app.updater.start_polling(drop_pending_updates=True)
     print("--- ✅ Bot avviato con successo e in ascolto ---")
 
     while True:
