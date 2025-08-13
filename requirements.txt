@@ -16,3 +16,4 @@ bip_utils==2.9.3
 bip_utils==2.9.3
 celery==5.4.0
 redis[hiredis]==5.0.7
+Babel==2.15.0

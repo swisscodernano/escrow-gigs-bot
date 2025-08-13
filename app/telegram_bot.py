@@ -3,6 +3,8 @@ from decimal import Decimal
 from app.config import settings
 from app.db import SessionLocal
 from app.models import User, Gig, Order, Dispute, Feedback
+from app.i18n import get_translation
+from app.lang_command import cmd_lang
 from app.payment.ledger import new_deposit_address
 from app.payment.tron_stub import validate_deposit_tx
 
@@ -34,7 +36,9 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🧾 I Miei Annunci", callback_data="mygigs")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("👋 *Benvenuto nel Gigs Escrow Bot*", reply_markup=reply_markup)
+    user = await ensure_user(update.effective_user)
+    _ = get_translation(user)
+    await update.message.reply_text(_("👋 *Benvenuto nel Gigs Escrow Bot*"), reply_markup=reply_markup)
 
 async def cmd_newgig(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = await ensure_user(update.effective_user)
@@ -473,6 +477,7 @@ async def run_bot_background():
     app.add_handler(CommandHandler("dispute", cmd_dispute))
     app.add_handler(CommandHandler("feedback", cmd_feedback))
     app.add_handler(CommandHandler("profile", cmd_profile))
+    app.add_handler(CommandHandler("lang", cmd_lang))
     
     # Gestore Pulsanti
     app.add_handler(CallbackQueryHandler(button_handler))
