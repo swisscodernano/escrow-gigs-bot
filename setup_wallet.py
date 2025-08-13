@@ -1,6 +1,5 @@
 import os
-import getpass
-from bip_utils import Bip39MnemonicGenerator, Bip39SeedGenerator, Bip44, Bip44Coins, Bip44Changes
+from bip_utils import Bip39MnemonicGenerator, Bip39SeedGenerator, Bip44, Bip44Coins
 
 WALLET_DIR = '.wallet'
 WALLET_FILE = os.path.join(WALLET_DIR, 'wallet.seed')
@@ -11,47 +10,44 @@ def main():
 
     if os.path.exists(WALLET_FILE):
         print(f'⚠️  Un seed di portafoglio esiste già in "{WALLET_FILE}".')
-        action = input('Vuoi cancellarlo e crearne uno nuovo? (sì/no): ').lower()
-        if action in ['sì', 'si', 'yes', 'y']:
-            os.remove(WALLET_FILE)
-            print('Vecchio file del seed cancellato.')
-        else:
-            print('Setup annullato.')
-            return
+        print('Cancella manualmente il file .wallet/wallet.seed per crearne uno nuovo.')
+        # Carica e mostra le info esistenti
+        with open(WALLET_FILE, 'rb') as f:
+            seed_bytes = f.read()
+        print('\n--- INFORMAZIONI PORTAFOGLIO ESISTENTE ---')
+    else:
+        if not os.path.exists(WALLET_DIR):
+            os.makedirs(WALLET_DIR)
+        
+        print('\nGenerazione di un nuovo portafoglio...')
+        mnemonic = Bip39MnemonicGenerator().FromWordsNumber(12)
+        # Per ora, la password del seed è vuota. L\'utente la imposterà nel .env
+        seed_bytes = Bip39SeedGenerator(mnemonic).Generate("") 
 
-    if not os.path.exists(WALLET_DIR):
-        os.makedirs(WALLET_DIR)
-
-    password = getpass.getpass('Inserisci una password robusta per criptare il seed (opzionale, premi invio per saltare): ')
-    
-    print('\nGenerazione del seed in corso...')
-    mnemonic = Bip39MnemonicGenerator().Generate()
-    seed_bytes = Bip39SeedGenerator(mnemonic).Generate(password)
-
-    with open(WALLET_FILE, 'wb') as f:
-        f.write(seed_bytes)
-    
-    print(f'✅ Seed del portafoglio salvato e criptato in "{WALLET_FILE}"')
+        with open(WALLET_FILE, 'wb') as f:
+            f.write(seed_bytes)
+        
+        print(f'✅ Seed del portafoglio salvato in "{WALLET_FILE}"')
+        print('\n--- 💾 INFORMAZIONI CRITICHE - SALVARE IN UN POSTO SICURO ---')
+        print(f'\n📄 Seed Phrase (Mnemonic):')
+        print(f'   {mnemonic}')
 
     coin_type = Bip44Coins.BITCOIN_TESTNET if NETWORK == 'testnet' else Bip44Coins.BITCOIN
     bip44_mst = Bip44.FromSeed(seed_bytes, coin_type)
     bip44_acc = bip44_mst.Purpose().Coin().Account(0)
     xpub = bip44_acc.PublicKey().ToExtended()
-
-    print('\n--- 💾 INFORMAZIONI CRITICHE - SALVARE IN UN POSTO SICURO ---')
-    print(f'\n📄 Seed Phrase (Mnemonic):')
-    print(f'   {mnemonic}')
     
-    print(f'\n🔑 Chiave Pubblica Estesa (XPUB) per il .env:')
+    print(f'\n🔑 Chiave Pubblica Estesa (XPUB):')
     print(f'   {xpub}')
     
-    print('\n--- ISTRUZIONI ---')
-    print('1. Salva la SEED PHRASE in un luogo sicuro e offline. È l\'unico modo per recuperare i fondi.')
-    print(f'2. Aggiungi le seguenti righe al tuo file .env:')
+    print('\n--- 🚀 AZIONE RICHIESTA ---')
+    print('1. Salva la SEED PHRASE in un luogo sicuro e offline.')
+    print(f'2. Crea o modifica il file .env nella cartella escrow-gigs-bot sul server.')
+    print(f'3. Aggiungi queste righe al file .env:')
     print(f'   BTC_NETWORK={NETWORK}')
     print(f'   BTC_XPUB="{xpub}"')
-    print(f'   # Lascia vuota la password se non l\'hai impostata')
-    print(f'   BTC_WALLET_SEED_PASSPHRASE="{password}"')
+    print(f'   BTC_WALLET_SEED_PASSPHRASE="LA_TUA_PASSWORD_SEGRETA"')
+    print(f'   # Assicurati di impostare anche le altre variabili come TELEGRAM_TOKEN, etc.')
 
     print('\nSetup completato.')
 

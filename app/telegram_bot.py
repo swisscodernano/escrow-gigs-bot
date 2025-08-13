@@ -29,7 +29,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ensure_user(update.effective_user)
     await update.message.reply_text(
         "👋 Benvenuto nel *Gigs Escrow Bot*\n"
-        "/newgig (USDT) | /newgigbtc (BTC) | /listings | /mygigs | /buy <id> | /confirm_tx <id> <txid> | /release <id> | /dispute <id> <motivo> | /orders")
+        "/newgig | /listings | /mygigs | /buy <id> | /orders | /order <id>")
 
 async def cmd_newgig(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = await ensure_user(update.effective_user)
@@ -131,9 +131,21 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db.add(o); db.commit(); db.refresh(o)
     dep = new_deposit_address(o.id, g.currency)
     o.deposit_address = dep.address
-    db.commit(); db.refresh(o); db.close()
+    db.commit(); db.refresh(o)
+    
+    # Notifica al venditore
+    try:
+        seller_tg_id = o.seller.tg_id
+        await context.bot.send_message(
+            chat_id=seller_tg_id,
+            text=f"🔔 Nuovo ordine ricevuto per l'annuncio #{g.id} da @{buyer.username or 'utente'}. In attesa di deposito."
+        )
+    except Exception as e:
+        print(f"Errore nell'invio notifica al venditore {o.seller_id}: {e}")
+
+    db.close()
     await update.message.reply_text(
-        "🛡️ Ordine creato. Deposita *{amt}* in {asset} all'indirizzo:\n`{addr}`\n\n"
+        "🛡️ Ordine creato. Deposita *{amt}* in {asset} all\'indirizzo:\n`{addr}`\n\n"
         "Dopo il pagamento: /confirm_tx {oid} <txid>"
         .format(amt=g.price_usd, asset=g.currency, addr=o.deposit_address, oid=o.id))
 
@@ -165,7 +177,19 @@ async def cmd_confirm_tx(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Deposito non valido.")
         return
     o.txid = txid; o.status = "FUNDS_HELD"
-    db.commit(); db.refresh(o); db.close()
+    db.commit(); db.refresh(o)
+
+    # Notifica al venditore
+    try:
+        seller_tg_id = o.seller.tg_id
+        await context.bot.send_message(
+            chat_id=seller_tg_id,
+            text=f"💰 Deposito confermato per l'ordine #{o.id}. I fondi sono in garanzia. Puoi procedere."
+        )
+    except Exception as e:
+        print(f"Errore nell'invio notifica al venditore {o.seller_id}: {e}")
+
+    db.close()
     await update.message.reply_text("✅ Deposito confermato. Fondi in garanzia. Usa /release {oid} quando ok.".format(oid=oid))
 
 async def cmd_release(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -189,7 +213,20 @@ async def cmd_release(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Ordine non in garanzia.")
         return
     o.status = "RELEASED"
-    db.commit(); db.refresh(o); db.close()
+    db.commit(); db.refresh(o)
+
+    # Notifica al venditore
+    try:
+        seller_tg_id = o.seller.tg_id
+        buyer_username = o.buyer.username or 'utente'
+        await context.bot.send_message(
+            chat_id=seller_tg_id,
+            text=f"✅ Fondi rilasciati da @{buyer_username} per l'ordine #{o.id}. Il pagamento è in elaborazione."
+        )
+    except Exception as e:
+        print(f"Errore nell'invio notifica al venditore {o.seller_id}: {e}")
+
+    db.close()
     await update.message.reply_text("🔓 Rilascio segnato. (Invio on-chain da worker/admin)")
 
 async def cmd_dispute(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -234,6 +271,47 @@ async def cmd_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
         lines.append(f"#{o.id} — {o.status} — ${o.expected_amount} — {o.deposit_address or '-'}")
     await update.message.reply_text("\n".join(lines))
 
+async def cmd_order_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    args = (update.message.text or "").split()
+    if len(args) < 2:
+        await update.message.reply_text("Uso: /order <order_id>")
+        return
+    try:
+        oid = int(args[1])
+    except:
+        await update.message.reply_text("ID ordine non valido.")
+        return
+    
+    u = await ensure_user(update.effective_user)
+    db = db_session()
+    user_obj = db.query(User).filter(User.tg_id==str(u.tg_id)).first()
+    order = db.query(Order).filter(Order.id==oid).first()
+    
+    if not order or (order.buyer_id != user_obj.id and order.seller_id != user_obj.id):
+        db.close()
+        await update.message.reply_text("Ordine non trovato o non hai i permessi per vederlo.")
+        return
+
+    gig = order.gig
+    buyer = order.buyer
+    seller = order.seller
+    
+    details = [
+        f"📦 *Dettagli Ordine #{order.id}*",
+        f"🏷️ *Annuncio:* {gig.title}",
+        f"💲 *Importo:* {order.expected_amount} {gig.currency}",
+        f"👤 *Venditore:* @{seller.username}",
+        f"👤 *Acquirente:* @{buyer.username}",
+        f"🚦 *Stato:* {order.status}",
+    ]
+    if order.deposit_address:
+        details.append(f"🏦 *Indirizzo Deposito:* `{order.deposit_address}`")
+    if order.txid:
+        details.append(f"🔗 *TXID:* `{order.txid}`")
+
+    db.close()
+    await update.message.reply_text("\n".join(details))
+
 async def run_bot_background():
     app = Application.builder().token(settings.BOT_TOKEN).defaults(Defaults(parse_mode=None)).build()
     app.add_handler(CommandHandler("start", cmd_start))
@@ -246,6 +324,7 @@ async def run_bot_background():
     app.add_handler(CommandHandler("release", cmd_release))
     app.add_handler(CommandHandler("dispute", cmd_dispute))
     app.add_handler(CommandHandler("orders", cmd_orders))
+    app.add_handler(CommandHandler("order", cmd_order_details))
 
     await app.initialize()
     await app.start()
