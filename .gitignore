@@ -4,3 +4,4 @@ __pycache__/
 .env
 app/__pycache__/
 tests/__pycache__/
+\n# Wallet files\n.wallet/

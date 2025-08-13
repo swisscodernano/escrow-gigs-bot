@@ -159,7 +159,7 @@ async def cmd_confirm_tx(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ok = await validate_deposit_tx(txid, Decimal(o.expected_amount))
     elif o.gig.currency.startswith("BTC-ONCHAIN"):
         from app.payment import btc_onchain
-        ok = await btc_onchain.validate_deposit(o.deposit_address, Decimal(o.expected_amount))
+        ok = await btc_onchain.validate_deposit(o.deposit_address, txid, Decimal(o.expected_amount))
     if not ok:
         db.close()
         await update.message.reply_text("⚠️ Deposito non valido.")
