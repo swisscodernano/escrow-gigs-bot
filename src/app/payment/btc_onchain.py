@@ -1,29 +1,28 @@
 import os, httpx
 from decimal import Decimal
 from typing import Tuple
-from bitcoinlib.keys import HDKey
+from bip_utils import Bip44, Bip44Coins, Bip44Changes, Bip44Levels, Bip44PublicKey
 
 # Env
-ENV_NET = os.getenv("BTC_NETWORK", "mainnet").lower()
-BITCOINLIB_NET = "bitcoin" if ENV_NET in ("mainnet","bitcoin") else "testnet"
-ESPLORA_URL = os.getenv("ESPLORA_URL", "https://blockstream.info/api")
+ENV_NET = os.getenv("BTC_NETWORK", "testnet").lower()
+ESPLORA_URL = "https://blockstream.info/testnet/api" if ENV_NET == 'testnet' else "https://blockstream.info/api"
 BTC_XPUB = os.getenv("BTC_XPUB", "")
-
-# BIP84 path for receiving addresses (account 0, external chain)
-RECEIVE_PATH = "m/0/{}"
 
 def _get_xpub_key():
     if not BTC_XPUB:
         raise RuntimeError("BTC_XPUB must be set in .env")
-    return HDKey(BTC_XPUB, network=BITCOINLIB_NET)
+    return Bip44PublicKey.FromExtended(BTC_XPUB)
 
 def derive_address(order_id: int) -> Tuple[str, str]:
-    """Deriva un indirizzo di ricezione per un dato ID ordine."""
+    """Deriva un indirizzo di ricezione P2WPKH (BIP84) per un dato ID ordine."""
     xpub_key = _get_xpub_key()
-    # Usiamo l'order_id come indice per l'indirizzo
-    path = RECEIVE_PATH.format(order_id)
-    child_key = xpub_key.subkey_for_path(path)
-    return child_key.address(witness_type='segwit'), path
+    
+    # Deriviamo la chiave per il change level (0 = external) e poi per l'address index
+    bip44_chg = Bip44.FromKey(xpub_key, Bip44Levels.CHANGE).Change(Bip44Changes.CHAIN_EXT)
+    bip44_addr = bip44_chg.AddressIndex(order_id)
+    
+    path = f"m/0/{order_id}" # Percorso relativo all'account
+    return bip44_addr.PublicKey().ToAddress(), path
 
 async def _esplora_get(path: str):
     async with httpx.AsyncClient(timeout=15.0) as c:

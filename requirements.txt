@@ -12,5 +12,5 @@ tronpy==0.4.0
 cryptography==42.0.8
 openai==1.37.1
 tqdm==4.66.4
-bitcoinlib==0.6.15
-bitcoinlib==0.6.15
+bip_utils==2.9.3
+bip_utils==2.9.3
