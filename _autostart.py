@@ -43,7 +43,7 @@ def _resolve(name: str) -> Optional[object]:
         return fn
     except Exception as e:
         if name not in _RESOLVE_ERROR_LOGGED:
-            log.exception("Unable to import handler %s from app.telegram_bot: %s", name, e)
+            log.exception("Unable to import handler %s from telegram_bot: %s", name, e)
             _RESOLVE_ERROR_LOGGED.add(name)
         _CACHE[name] = None
         return None

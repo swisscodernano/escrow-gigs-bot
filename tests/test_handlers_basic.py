@@ -16,14 +16,14 @@ class _Ctx:
 
 @pytest.mark.asyncio
 async def test_start_and_help():
-    from app._autostart import _start, _help
+    from _autostart import _start, _help
     u=_Update(); c=_Ctx()
     await _start(u,c); assert "Welcome to Escrow Gigs" in u.effective_message.last
     await _help(u,c);  assert "/newgig" in u.effective_message.last
 
 @pytest.mark.asyncio
 async def test_release_usage_hint_when_missing_args():
-    from app._autostart import _release
+    from _autostart import _release
     u=_Update(); c=_Ctx(args=[])
     await _release(u,c)
     assert "Use: /release <order_id>" in u.effective_message.last

@@ -1,26 +1,34 @@
-import asyncio
-import logging
+import asyncio, logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from _autostart import run_bot_background
+from api.webhooks import router as webhooks_router
 
-# Import the bot runner with a Docker/local fallback
-try:
-    from app._autostart import run_bot_background  # when running inside the container (package path)
-except Exception:
-    from _autostart import run_bot_background      # when running locally from repo root
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # startup
+    try:
+        @app.on_event("startup")
+async def startup_event():
+    # You can add any startup logic here if needed
+    pass
+        logging.info("Bot task scheduled.")
+    except Exception as e:
+        logging.exception("Bot not started: %s", e)
+    yield
+    # shutdown
+    task = getattr(app.state, "bot_task", None)
+    if task:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
+
+app.include_router(webhooks_router)
 
 @app.get("/")
 def root():
     return {"ok": True, "service": "escrow-gigs-bot"}
-
-@app.on_event("startup")
-async def startup():
-    # start telegram bot in background (if TELEGRAM_TOKEN is set)
-    try:
-        task = asyncio.create_task(run_bot_background())
-        # keep a ref so GC doesn't kill it
-        app.state.bot_task = task
-        logging.info("Bot background task scheduled.")
-    except Exception as e:
-        logging.exception("Failed to schedule bot background task: %s", e)

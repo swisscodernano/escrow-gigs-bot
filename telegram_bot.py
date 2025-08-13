@@ -1,12 +1,12 @@
 import asyncio
 from decimal import Decimal
-from app.config import settings
-from app.db import SessionLocal
-from app.models import User, Gig, Order, Dispute, Feedback
-from app.i18n import get_translation
-from app.lang_command import cmd_lang
-from app.payment.ledger import new_deposit_address
-from app.payment.tron_stub import validate_deposit_tx
+from config import settings
+from db import SessionLocal
+from models import User, Gig, Order, Dispute, Feedback
+from i18n import get_translation
+from lang_command import cmd_lang
+from payment.ledger import new_deposit_address
+from payment.tron_stub import validate_deposit_tx
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Defaults, Application, CommandHandler, ContextTypes, CallbackQueryHandler
@@ -144,7 +144,7 @@ async def cmd_confirm_tx(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if o.gig.currency.startswith("USDT-TRON"):
         ok = await validate_deposit_tx(txid, Decimal(o.expected_amount))
     elif o.gig.currency.startswith("BTC-ONCHAIN"):
-        from app.payment import btc_onchain
+        from payment import btc_onchain
         ok = await btc_onchain.validate_deposit(o.deposit_address, txid, Decimal(o.expected_amount))
     if not ok:
         db.close()
@@ -446,7 +446,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         order.status = "RELEASED"
         db.commit()
         
-        from app.tasks import process_withdrawal
+        from tasks import process_withdrawal
         process_withdrawal.delay(order.id)
 
         await query.edit_message_text("✅ Rilascio confermato. Il pagamento è in corso di elaborazione.")

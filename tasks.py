@@ -1,7 +1,7 @@
 from celery import Celery
-from app.config import settings
-from app.db import SessionLocal
-from app.models import Order
+from config import settings
+from db import SessionLocal
+from models import Order
 
 celery_app = Celery(
     "tasks",

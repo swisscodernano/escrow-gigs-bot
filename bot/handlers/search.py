@@ -1,7 +1,7 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, InlineQueryResultArticle, InputTextMessageContent
 from telegram.ext import ContextTypes
-from app.db import SessionLocal
-from app.services.search import search_gigs
+from db import SessionLocal
+from services.search import search_gigs
 
 async def cmd_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = update.effective_message

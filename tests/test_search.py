@@ -4,8 +4,8 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from app.services.search import search_gigs
-from app.bot.handlers import search as handler
+from services.search import search_gigs
+from bot.handlers import search as handler
 
 @pytest.fixture
 def sessionmaker_():

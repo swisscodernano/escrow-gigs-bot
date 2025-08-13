@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Response
-from app.telegram_bot import run_bot_background
+from telegram_bot import run_bot_background
 import asyncio
 
 app = FastAPI()

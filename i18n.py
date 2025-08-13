@@ -1,5 +1,5 @@
 import gettext
-from app.models import User
+from models import User
 
 LANGUAGES = ['en', 'it']
 DEFAULT_LOCALE = 'en'

@@ -1,6 +1,6 @@
-from app.db import SessionLocal
-from app.models import User
-from app.models.wallet import get_or_create_wallet, Transaction
+from db import SessionLocal
+from models import User
+from models.wallet import get_or_create_wallet, Transaction
 
 async def wallet(update, context):
     tg = update.effective_user

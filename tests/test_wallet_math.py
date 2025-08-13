@@ -1,7 +1,7 @@
 from decimal import Decimal
-from app.db import Base, engine, SessionLocal
-from app.models import User
-from app.models.wallet import get_or_create_wallet, apply_deposit, place_hold, release_hold
+from db import Base, engine, SessionLocal
+from models import User
+from models.wallet import get_or_create_wallet, apply_deposit, place_hold, release_hold
 
 
 def setup_function(fn):

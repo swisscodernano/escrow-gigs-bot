@@ -1,5 +1,5 @@
 from functools import lru_cache
-from app.config import settings
+from config import settings
 from .mock import MockProvider
 from .base import BaseProvider
 

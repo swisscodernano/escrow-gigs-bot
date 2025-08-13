@@ -1,8 +1,8 @@
 from fastapi.testclient import TestClient
-from app.app import app
-from app.db import Base, engine, SessionLocal
-from app.models import User
-from app.models.wallet import get_or_create_wallet
+from app import app
+from db import Base, engine, SessionLocal
+from models import User
+from models.wallet import get_or_create_wallet
 
 
 def setup_function(fn):
