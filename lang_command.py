@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from db import SessionLocal
 from models import User
-from i18n import LANGUAGES
+from translator import LANGUAGES
 
 async def cmd_lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = (update.message.text or "").split()

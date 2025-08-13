@@ -3,7 +3,7 @@ from decimal import Decimal
 from config import settings
 from db import SessionLocal
 from models import User, Gig, Order, Dispute, Feedback
-from i18n import get_translation
+from translator import get_translation
 from lang_command import cmd_lang
 from payment.ledger import new_deposit_address
 from payment.tron_stub import validate_deposit_tx
