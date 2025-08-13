@@ -1,5 +1,5 @@
 from celery import Celery
-from config import settings
+from app.config import settings
 from db import SessionLocal
 from models import Order
 
