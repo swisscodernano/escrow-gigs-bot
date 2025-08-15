@@ -2,7 +2,7 @@
 from sqlalchemy import Integer, String, Numeric, Boolean, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
-from db import Base
+from app.db import Base
 
 class Feedback(Base):
     __tablename__ = "feedbacks"

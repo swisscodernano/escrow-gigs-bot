@@ -2,7 +2,7 @@ from decimal import Decimal
 from sqlalchemy import Integer, String, Numeric, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
-from db import Base
+from app.db_core import Base
 
 class Wallet(Base):
     __tablename__ = "wallets"

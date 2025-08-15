@@ -1,7 +1,7 @@
 from functools import lru_cache
-from config import settings
-from app.mock import MockProvider
-from app.base import BaseProvider
+from app.config import settings
+from app.services.payments.mock import MockProvider
+from app.services.payments.base import BaseProvider
 
 @lru_cache()
 def get_provider() -> BaseProvider:

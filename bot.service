@@ -1,0 +1,14 @@
+[Unit]
+Description=Escrow Gigs Bot
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/escrow-gigs-bot/escrow-gigs-bot
+ExecStart=/home/ubuntu/escrow-gigs-bot/escrow-gigs-bot/venv/bin/python -m app._autostart
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

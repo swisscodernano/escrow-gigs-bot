@@ -1,20 +1,17 @@
 import asyncio, logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from _autostart import run_bot_background
-from api.webhooks import router as webhooks_router
+
+from app.api.webhooks import router as webhooks_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # startup
-    try:
-        @app.on_event("startup")
-async def startup_event():
-    # You can add any startup logic here if needed
-    pass
-        logging.info("Bot task scheduled.")
-    except Exception as e:
-        logging.exception("Bot not started: %s", e)
+    @app.on_event("startup")
+    async def startup_event():
+        # You can add any startup logic here if needed
+        pass
+    logging.info("Bot task scheduled.")
     yield
     # shutdown
     task = getattr(app.state, "bot_task", None)

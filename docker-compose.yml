@@ -3,26 +3,36 @@ services:
     build: .
     env_file:
       - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     expose:
       - "8000"     # visibile solo nella rete docker
     restart: unless-stopped
-    command: bash -lc "python app/wait_db.py && python app/migrate.py && uvicorn app.app:app --host 0.0.0.0 --port 8000"
+    command: bash -lc "python app/db/init_db.py && python app/db/migrations/add_btc_address.py && uvicorn app.app:app --host 0.0.0.0 --port 8000"
 
   bot:
     build: .
     env_file:
       - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}
+      - TELEGRAM_TOKEN=${BOT_TOKEN}
     depends_on:
       - db
     restart: unless-stopped
-    command: bash -lc "python run_bot.py"
+    command: bash -lc "python -m app._autostart"
+    networks:
+      - default
 
   worker:
     build: .
     env_file:
       - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}
     depends_on:
       - db
       - redis
@@ -38,6 +48,11 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -60,3 +75,7 @@ volumes:
   pgdata:
   caddy_data:
   caddy_config:
+
+networks:
+  default:
+    driver: bridge

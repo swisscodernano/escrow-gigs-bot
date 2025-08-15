@@ -3,13 +3,16 @@ from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
 from app.db import Base
 
+
 class User(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     tg_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     username: Mapped[str] = mapped_column(String(64), default="")
     lang: Mapped[str] = mapped_column(String(8), default="en")
+    btc_address: Mapped[str] = mapped_column(String(128), default="")
     created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
 
 class Gig(Base):
     __tablename__ = "gigs"
@@ -49,7 +52,6 @@ class Dispute(Base):
     status: Mapped[str] = mapped_column(String(32), default="OPEN")
     created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-from app.wallet import Wallet, Transaction
-from app.feedback import Feedback
+from app.models.feedback import Feedback
 
-__all__ = ["User", "Gig", "Order", "Dispute", "Wallet", "Transaction", "Feedback"]
+__all__ = ["User", "Gig", "Order", "Dispute", "Feedback"]
