@@ -18,15 +18,15 @@ def main():
     else:
         if not os.path.exists(WALLET_DIR):
             os.makedirs(WALLET_DIR)
-        
+
         print('\nGenerazione di un nuovo portafoglio...')
         mnemonic = Bip39MnemonicGenerator().FromWordsNumber(12)
         # Per ora, la password del seed è vuota. L\'utente la imposterà nel .env
-        seed_bytes = Bip39SeedGenerator(mnemonic).Generate("") 
+        seed_bytes = Bip39SeedGenerator(mnemonic).Generate("")
 
         with open(WALLET_FILE, 'wb') as f:
             f.write(seed_bytes)
-        
+
         print(f'✅ Seed del portafoglio salvato in "{WALLET_FILE}"')
         print('\n--- 💾 INFORMAZIONI CRITICHE - SALVARE IN UN POSTO SICURO ---')
         print(f'\n📄 Seed Phrase (Mnemonic):')
@@ -36,10 +36,10 @@ def main():
     bip44_mst = Bip44.FromSeed(seed_bytes, coin_type)
     bip44_acc = bip44_mst.Purpose().Coin().Account(0)
     xpub = bip44_acc.PublicKey().ToExtended()
-    
+
     print(f'\n🔑 Chiave Pubblica Estesa (XPUB):')
     print(f'   {xpub}')
-    
+
     print('\n--- 🚀 AZIONE RICHIESTA ---')
     print('1. Salva la SEED PHRASE in un luogo sicuro e offline.')
     print(f'2. Crea o modifica il file .env nella cartella escrow-gigs-bot sul server.')

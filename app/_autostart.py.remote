@@ -38,24 +38,24 @@ async def run_bot_background():
     bot_commands = [BotCommand(cmd, desc) for cmd, (desc, _) in commands.items()]
     for cmd, (_, handler) in commands.items():
         app.add_handler(CommandHandler(cmd, handler))
-    
+
     log.info(f"Added {len(commands)} command handlers.")
 
     await app.initialize()
     await app.start()
-    
+
     try:
         await app.bot.delete_webhook(drop_pending_updates=True)
         await app.bot.set_my_commands(bot_commands)
         log.info("Bot commands set.")
-        
+
         await app.updater.start_polling()
         log.info("Telegram bot is running and polling for updates.")
-        
+
         # Keep the bot running
         while True:
             await asyncio.sleep(3600)
-            
+
     except asyncio.CancelledError:
         log.info("Bot operation was cancelled.")
     except Exception as e:

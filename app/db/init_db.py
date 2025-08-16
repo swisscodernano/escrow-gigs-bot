@@ -1,11 +1,5 @@
 from app.db_core import Base, engine
-from app.models import (  # Import models to ensure they are registered with Base.metadata
-    Dispute,
-    Feedback,
-    Gig,
-    Order,
-    User,
-)
+from app.models import Dispute, Feedback, Gig, Order, User  # noqa: F401
 
 
 def init_db():

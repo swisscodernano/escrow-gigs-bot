@@ -2,7 +2,6 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from app.db import SessionLocal
-from app.models import Gig
 from app.services.search import search_gigs_by_keyword
 
 

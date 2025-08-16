@@ -1,9 +1,6 @@
 import os
-from decimal import Decimal
 
-import requests
 from bip_utils import (
-    Bip39MnemonicGenerator,
     Bip39SeedGenerator,
     Bip44,
     Bip44Changes,
@@ -80,7 +77,7 @@ def process_withdrawal(order_id: int):
         )
 
         # Simulate broadcasting a transaction
-        token = get_blockcypher_token()
+        get_blockcypher_token()
         # This is a placeholder for actual transaction broadcasting logic
         # In a real scenario, you would build and sign a raw transaction and then push it.
         # Example: https://www.blockcypher.com/dev/bitcoin/#push-transaction-endpoint

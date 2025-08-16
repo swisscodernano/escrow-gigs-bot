@@ -26,4 +26,3 @@ msgstr ""
 #, python-brace-format
 msgid "Language set to: {lang}"
 msgstr ""
-
