@@ -1,31 +1,25 @@
-import asyncio, logging
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
+import asyncio
 
-from app.api.webhooks import router as webhooks_router
+from dotenv import load_dotenv
+from fastapi import FastAPI, Response
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # startup
-    @app.on_event("startup")
-    async def startup_event():
-        # You can add any startup logic here if needed
-        pass
-    logging.info("Bot task scheduled.")
-    yield
-    # shutdown
-    task = getattr(app.state, "bot_task", None)
-    if task:
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
+from app.telegram_bot import run_bot_background
 
-app = FastAPI(lifespan=lifespan)
+load_dotenv()
 
-app.include_router(webhooks_router)
+fastapi_app = FastAPI()
 
-@app.get("/")
-def root():
-    return {"ok": True, "service": "escrow-gigs-bot"}
+
+@fastapi_app.get("/health")
+def health_get():
+    return {"status": "ok"}
+
+
+@fastapi_app.head("/health")
+def health_head():
+    return Response(status_code=200)
+
+
+@fastapi_app.on_event("startup")
+async def startup():
+    asyncio.create_task(run_bot_background())

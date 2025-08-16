@@ -1,5 +1,7 @@
 import os
+
 from pydantic import BaseModel
+
 
 class Settings(BaseModel):
     BOT_TOKEN: str = os.getenv("BOT_TOKEN", "").strip()
@@ -19,5 +21,6 @@ class Settings(BaseModel):
     TRON_API_KEY: str = os.getenv("TRON_API_KEY", "")
     PAYMENTS_PROVIDER: str = os.getenv("PAYMENTS_PROVIDER", "mock")
     CURRENCY: str = os.getenv("CURRENCY", "USD")
+
 
 settings = Settings()

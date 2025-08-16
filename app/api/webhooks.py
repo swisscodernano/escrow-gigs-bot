@@ -1,12 +1,15 @@
 from decimal import Decimal
 from typing import Any, Dict
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+
 from app.db import get_db
-from app.services.payments import get_provider
 from app.models.wallet import apply_deposit
+from app.services.payments import get_provider
 
 router = APIRouter()
+
 
 @router.post("/webhook/payments")
 async def payments_webhook(payload: Dict[str, Any], db: Session = Depends(get_db)):

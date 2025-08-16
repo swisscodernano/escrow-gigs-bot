@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # Configuration
@@ -15,6 +14,6 @@ if [ ! -f "$SSH_KEY" ]; then
 fi
 
 # rsync command
-rsync -avz -e "ssh -i $SSH_KEY" --rsync-path="mkdir -p $REMOTE_DIR && rsync" --exclude='.git' --exclude='*.pyc' --exclude='__pycache__' "$LOCAL_DIR" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR"
+rsync -avz -e "ssh -i $SSH_KEY" --rsync-path="mkdir -p $REMOTE_DIR && rsync" --exclude='.git' --exclude='*.pyc' --exclude='__pycache__' --exclude='venv' "$LOCAL_DIR" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR"
 
 echo "Sync complete."

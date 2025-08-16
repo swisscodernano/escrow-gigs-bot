@@ -6,7 +6,8 @@ After=network.target
 User=ubuntu
 Group=ubuntu
 WorkingDirectory=/home/ubuntu/escrow-gigs-bot/escrow-gigs-bot
-ExecStart=/home/ubuntu/escrow-gigs-bot/escrow-gigs-bot/venv/bin/python -m app._autostart
+ExecStart=/home/ubuntu/escrow-gigs-bot/escrow-gigs-bot/venv/bin/uvicorn app.app:fastapi_app --host 0.0.0.0 --port 8000
+ExecStop=/bin/kill -s TERM $MAINPID
 Restart=always
 RestartSec=5
 

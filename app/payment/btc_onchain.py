@@ -2,9 +2,10 @@ from bip_utils import (
     Bip39MnemonicGenerator,
     Bip39SeedGenerator,
     Bip44,
-    Bip44Coins,
     Bip44Changes,
+    Bip44Coins,
 )
+
 
 def new_deposit_address(order_id: int):
     # Generate a 12-word mnemonic

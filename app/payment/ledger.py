@@ -1,5 +1,5 @@
-
 from app.payment import btc_onchain
+
 
 def new_deposit_address(order_id: int, currency: str):
     if currency == "BTC-ONCHAIN":
