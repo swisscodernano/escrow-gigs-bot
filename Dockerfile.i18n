@@ -1,0 +1,6 @@
+FROM python:3.10-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN apt-get update && apt-get install -y build-essential && pip install --no-cache-dir -r requirements.txt
+COPY . .
+CMD ["python", "-m", "babel", "extract", "-F", "babel.cfg", "-o", "app/i18n/messages.pot", "."]
