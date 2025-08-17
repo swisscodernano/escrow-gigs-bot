@@ -12,7 +12,7 @@ load_dotenv()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Start the bot on application startup
-    asyncio.create_task(run_bot_background())
+    # asyncio.create_task(run_bot_background())
     yield
     # Optional: Add cleanup logic here if the bot task needs to be cancelled
     # bot_task.cancel()

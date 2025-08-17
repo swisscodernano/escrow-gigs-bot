@@ -15,7 +15,7 @@ class Settings(BaseModel):
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "escrowpass")
     POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "db")
     POSTGRES_PORT: int = int(os.getenv("POSTGRES_PORT", "5432"))
-    REDIS_URL: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     PRIMARY_ASSET: str = os.getenv("PRIMARY_ASSET", "USDT-TRON")
     TRON_PRIVATE_KEY: str = os.getenv("TRON_PRIVATE_KEY", "")
     TRON_API_KEY: str = os.getenv("TRON_API_KEY", "")
