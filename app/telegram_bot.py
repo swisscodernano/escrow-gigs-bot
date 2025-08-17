@@ -126,6 +126,8 @@ RECEIVE_TXID = 7
 CONFIRM_RELEASE = 8
 # State for /dispute conversation
 RECEIVE_REASON = 9
+# States for review conversation
+GIVE_RATING, GIVE_COMMENT = range(10, 12)
 
 
 @db_session_decorator
@@ -230,6 +232,163 @@ async def receive_description(
         ),
         parse_mode="Markdown",
     )
+
+    context.user_data.clear()
+    return ConversationHandler.END
+
+
+@db_session_decorator
+async def start_review(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, db: Session = None
+) -> int:
+    """Starts the review conversation."""
+    query = update.callback_query
+    await query.answer()
+
+    user = await ensure_user(update.effective_user, db)
+    _ = get_translation(user)
+
+    try:
+        _, order_id, reviewee_id = query.data.split("_")
+        context.user_data["review_order_id"] = int(order_id)
+        context.user_data["review_reviewee_id"] = int(reviewee_id)
+        context.user_data["review_reviewer_id"] = user.id
+    except ValueError:
+        await query.message.reply_text(
+            _("Something went wrong. Could not start review process.")
+        )
+        return ConversationHandler.END
+
+    keyboard = [
+        [
+            InlineKeyboardButton("⭐", callback_data="rating_1"),
+            InlineKeyboardButton("⭐⭐", callback_data="rating_2"),
+            InlineKeyboardButton("⭐⭐⭐", callback_data="rating_3"),
+            InlineKeyboardButton("⭐⭐⭐⭐", callback_data="rating_4"),
+            InlineKeyboardButton("⭐⭐⭐⭐⭐", callback_data="rating_5"),
+        ],
+        [InlineKeyboardButton(_("Cancel"), callback_data="cancel")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await query.message.edit_text(
+        _("Please rate your experience with the other user (1-5 stars):"),
+        reply_markup=reply_markup,
+    )
+
+    return GIVE_RATING
+
+
+@db_session_decorator
+async def receive_rating(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, db: Session = None
+) -> int:
+    """Receives the rating and asks for a comment."""
+    query = update.callback_query
+    await query.answer()
+
+    user = await ensure_user(update.effective_user, db)
+    _ = get_translation(user)
+
+    try:
+        rating = int(query.data.split("_")[1])
+        context.user_data["review_rating"] = rating
+    except (ValueError, IndexError):
+        await query.message.reply_text(_("Invalid rating. Please try again."))
+        return GIVE_RATING
+
+    keyboard = [
+        [InlineKeyboardButton(_("Skip Comment"), callback_data="skip_comment")],
+        [InlineKeyboardButton(_("Cancel"), callback_data="cancel")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await query.message.edit_text(
+        _("Thank you for the rating! Would you like to add a public comment? (optional)"),
+        reply_markup=reply_markup,
+    )
+
+    return GIVE_COMMENT
+
+
+@db_session_decorator
+async def receive_comment(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, db: Session = None
+) -> int:
+    """Receives the comment, saves the feedback, and ends the conversation."""
+    from app.models import Feedback, Order
+
+    user = await ensure_user(update.effective_user, db)
+    _ = get_translation(user)
+
+    comment = update.message.text
+
+    order_id = context.user_data.get("review_order_id")
+    reviewer_id = context.user_data.get("review_reviewer_id")
+    reviewee_id = context.user_data.get("review_reviewee_id")
+    rating = context.user_data.get("review_rating")
+
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        await update.message.reply_text(_("Error: Original order not found."))
+        context.user_data.clear()
+        return ConversationHandler.END
+
+    review_type = "buyer_review" if reviewer_id == order.buyer_id else "seller_review"
+
+    feedback = Feedback(
+        order_id=order_id,
+        reviewer_id=reviewer_id,
+        reviewee_id=reviewee_id,
+        score=rating,
+        comment=comment,
+        review_type=review_type,
+    )
+    db.add(feedback)
+
+    await update.message.reply_text(_("✅ Thank you for your feedback!"))
+
+    context.user_data.clear()
+    return ConversationHandler.END
+
+
+@db_session_decorator
+async def skip_comment(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, db: Session = None
+) -> int:
+    """Saves feedback without a comment and ends the conversation."""
+    from app.models import Feedback, Order
+
+    query = update.callback_query
+    await query.answer()
+
+    user = await ensure_user(update.effective_user, db)
+    _ = get_translation(user)
+
+    order_id = context.user_data.get("review_order_id")
+    reviewer_id = context.user_data.get("review_reviewer_id")
+    reviewee_id = context.user_data.get("review_reviewee_id")
+    rating = context.user_data.get("review_rating")
+
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        await query.message.edit_text(_("Error: Original order not found."))
+        context.user_data.clear()
+        return ConversationHandler.END
+
+    review_type = "buyer_review" if reviewer_id == order.buyer_id else "seller_review"
+
+    feedback = Feedback(
+        order_id=order_id,
+        reviewer_id=reviewer_id,
+        reviewee_id=reviewee_id,
+        score=rating,
+        comment=None,
+        review_type=review_type,
+    )
+    db.add(feedback)
+
+    await query.message.edit_text(_("✅ Thank you for your feedback!"))
 
     context.user_data.clear()
     return ConversationHandler.END
@@ -875,18 +1034,54 @@ async def execute_release(
         ).format(oid=order_id)
     )
 
-    # Notify seller
+    # Notify seller and prompt for review
     try:
         seller_tg_id = o.seller.tg_id
+        review_keyboard_seller = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        _("Leave a Review"),
+                        callback_data=f"start_review_{o.id}_{o.buyer_id}",
+                    )
+                ]
+            ]
+        )
         await context.bot.send_message(
             chat_id=seller_tg_id,
             text=_(
-                "✅ The buyer has released the funds for Order #{oid}. The payment will be processed to your wallet shortly."
+                "✅ The buyer has released the funds for Order #{oid}. The order is now complete. Please leave a review for the buyer."
             ).format(oid=order_id),
+            reply_markup=review_keyboard_seller,
         )
     except Exception as e:
         logging.error(
             f"Failed to send release notification to seller for order {order_id}: {e}"
+        )
+
+    # Prompt buyer to review seller
+    try:
+        buyer_tg_id = o.buyer.tg_id
+        review_keyboard_buyer = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        _("Leave a Review"),
+                        callback_data=f"start_review_{o.id}_{o.seller_id}",
+                    )
+                ]
+            ]
+        )
+        await context.bot.send_message(
+            chat_id=buyer_tg_id,
+            text=_(
+                "Your order #{oid} is complete. Please leave a review for the seller."
+            ).format(oid=order_id),
+            reply_markup=review_keyboard_buyer,
+        )
+    except Exception as e:
+        logging.error(
+            f"Failed to send review prompt to buyer for order {order_id}: {e}"
         )
 
     context.user_data.clear()
@@ -1161,6 +1356,55 @@ async def cmd_orders(
         await message.reply_text(text, reply_markup=reply_markup, parse_mode="Markdown")
 
 
+@db_session_decorator
+async def cmd_profile(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, db: Session = None
+):
+    """Displays the user's profile and stats."""
+    from sqlalchemy import func
+    from app.models import Feedback
+
+    user = await ensure_user(update.effective_user, db)
+    _ = get_translation(user)
+
+    # Calculate rating stats
+    rating_stats = (
+        db.query(func.avg(Feedback.score), func.count(Feedback.id))
+        .filter(Feedback.reviewee_id == user.id)
+        .first()
+    )
+
+    avg_rating = rating_stats[0] or 0
+    num_reviews = rating_stats[1] or 0
+
+    # Calculate completed orders
+    completed_orders = (
+        db.query(Order)
+        .filter(
+            ((Order.buyer_id == user.id) | (Order.seller_id == user.id))
+            & (Order.status == "RELEASED")
+        )
+        .count()
+    )
+
+    # Format the rating string
+    rating_str = f"{Decimal(avg_rating):.1f} ⭐" if avg_rating else _("Not rated yet")
+
+    text = _(
+        "👤 *Your Profile*\n\n"
+        "**Username:** @{username}\n"
+        "**Rating:** {rating} ({reviews} reviews)\n"
+        "**Completed Orders:** {orders}"
+    ).format(
+        username=user.username,
+        rating=rating_str,
+        reviews=num_reviews,
+        orders=completed_orders,
+    )
+
+    await update.message.reply_text(text, parse_mode="Markdown")
+
+
 async def run_bot_background():
     log = logging.getLogger(__name__)
     token = os.getenv("TELEGRAM_TOKEN", "").strip()
@@ -1176,6 +1420,7 @@ async def run_bot_background():
         "start": ("👋 Start the bot", cmd_start),
         "help": ("❓ Show help", cmd_help),
         "mygigs": ("🧾 See your gigs", cmd_mygigs),
+        "profile": ("👤 Show your profile", cmd_profile),
         "lang": ("🌐 Change language", cmd_lang),
     }
 
@@ -1268,6 +1513,26 @@ async def run_bot_background():
         ],
     )
     app.add_handler(dispute_conv_handler)
+
+    review_conv_handler = ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(start_review, pattern=r"^start_review_\d+_\d+$")
+        ],
+        states={
+            GIVE_RATING: [
+                CallbackQueryHandler(receive_rating, pattern=r"^rating_[1-5]$"),
+            ],
+            GIVE_COMMENT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_comment),
+                CallbackQueryHandler(skip_comment, pattern="^skip_comment$"),
+            ],
+        },
+        fallbacks=[
+            CommandHandler("cancel", cancel),
+            CallbackQueryHandler(cancel, pattern="^cancel$"),
+        ],
+    )
+    app.add_handler(review_conv_handler)
 
     bot_commands = [BotCommand(cmd, desc) for cmd, (desc, _) in commands.items()]
     for cmd, (_, handler) in commands.items():

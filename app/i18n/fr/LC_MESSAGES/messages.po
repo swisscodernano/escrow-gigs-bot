@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-08-16 14:38+0200\n"
+"POT-Creation-Date: 2025-08-17 16:14+0000\n"
 "PO-Revision-Date: 2025-08-16 14:38+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -18,12 +18,458 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: app/lang_command.py:15
-, python-brace-format
+#: app/lang_command.py:20
+#, python-brace-format
 msgid "Usage: /lang <{languages}>"
 msgstr "Utilisation : /lang <{languages}>"
 
-#: app/lang_command.py:22
-, python-brace-format
+#: app/lang_command.py:29
+#, python-brace-format
 msgid "Language set to: {lang}"
 msgstr "Langue définie sur : {lang}"
+
+#: app/telegram_bot.py:48
+msgid "New Gig (USDT)"
+msgstr ""
+
+#: app/telegram_bot.py:49
+msgid "New Gig (BTC)"
+msgstr ""
+
+#: app/telegram_bot.py:51
+msgid "Listings"
+msgstr ""
+
+#: app/telegram_bot.py:53
+msgid "My Gigs"
+msgstr ""
+
+#: app/telegram_bot.py:54
+msgid "My Orders"
+msgstr ""
+
+#: app/telegram_bot.py:59
+msgid ""
+"👋 Welcome to the *Gigs Escrow Bot*\n"
+"\n"
+"Please choose an option:"
+msgstr ""
+
+#: app/telegram_bot.py:101
+msgid ""
+"Available commands:\n"
+"/start - Start the bot\n"
+"/newgig <Title> | <price_usd> | <description> - Create a new gig in USDT\n"
+"/newgigbtc <Title> | <price_btc> | <description> - Create a new gig in "
+"BTC\n"
+"/listings - Show active gigs\n"
+"/mygigs - Show your gigs\n"
+"/buy <id> - Buy a gig\n"
+"/confirm_tx <id> <txid> - Confirm a transaction\n"
+"/release <id> - Release funds to the seller\n"
+"/dispute <id> <reason> - Open a dispute\n"
+"/orders - Show your orders\n"
+"/lang <en|it> - Set your language"
+msgstr ""
+
+#: app/telegram_bot.py:148
+msgid "Let's create a new gig! What is the title?"
+msgstr ""
+
+#: app/telegram_bot.py:150 app/telegram_bot.py:168 app/telegram_bot.py:188
+#: app/telegram_bot.py:197 app/telegram_bot.py:270 app/telegram_bot.py:302
+#: app/telegram_bot.py:434 app/telegram_bot.py:452 app/telegram_bot.py:472
+#: app/telegram_bot.py:481 app/telegram_bot.py:705 app/telegram_bot.py:841
+#: app/telegram_bot.py:980 app/telegram_bot.py:1159
+msgid "Cancel"
+msgstr ""
+
+#: app/telegram_bot.py:166
+msgid "Great! Now, what is the price in USD?"
+msgstr ""
+
+#: app/telegram_bot.py:186 app/telegram_bot.py:470
+msgid "Got it. Finally, please provide a short description."
+msgstr ""
+
+#: app/telegram_bot.py:195
+msgid "The price must be a number. Please try again."
+msgstr ""
+
+#: app/telegram_bot.py:230
+#, python-brace-format
+msgid "✅ Gig #{gig_id} created: *{title}* — ${price} ({currency})"
+msgstr ""
+
+#: app/telegram_bot.py:258
+msgid "Something went wrong. Could not start review process."
+msgstr ""
+
+#: app/telegram_bot.py:275
+msgid "Please rate your experience with the other user (1-5 stars):"
+msgstr ""
+
+#: app/telegram_bot.py:297
+msgid "Invalid rating. Please try again."
+msgstr ""
+
+#: app/telegram_bot.py:301
+msgid "Skip Comment"
+msgstr ""
+
+#: app/telegram_bot.py:307
+msgid ""
+"Thank you for the rating! Would you like to add a public comment? "
+"(optional)"
+msgstr ""
+
+#: app/telegram_bot.py:333 app/telegram_bot.py:375
+msgid "Error: Original order not found."
+msgstr ""
+
+#: app/telegram_bot.py:349 app/telegram_bot.py:391
+msgid "✅ Thank you for your feedback!"
+msgstr ""
+
+#: app/telegram_bot.py:412
+msgid "Operation cancelled."
+msgstr ""
+
+#: app/telegram_bot.py:432
+msgid "Let's create a new BTC gig! What is the title?"
+msgstr ""
+
+#: app/telegram_bot.py:450
+msgid "Great! Now, what is the price in BTC?"
+msgstr ""
+
+#: app/telegram_bot.py:479
+msgid "The price must be a number (e.g. 0.001). Please try again."
+msgstr ""
+
+#: app/telegram_bot.py:514
+#, python-brace-format
+msgid "✅ BTC Gig #{gig_id} created: *{title}* — {price_btc} BTC"
+msgstr ""
+
+#: app/telegram_bot.py:537
+msgid "No gigs at the moment. /newgig"
+msgstr ""
+
+#: app/telegram_bot.py:540
+msgid ""
+"📋 *Available Gigs:*\n"
+"\n"
+msgstr ""
+
+#: app/telegram_bot.py:572
+msgid "You have no gigs. To create one, use the /start menu."
+msgstr ""
+
+#: app/telegram_bot.py:576
+msgid ""
+"🧾 *Your Gigs:*\n"
+"\n"
+msgstr ""
+
+#: app/telegram_bot.py:579
+msgid "Active"
+msgstr ""
+
+#: app/telegram_bot.py:579
+msgid "Inactive"
+msgstr ""
+
+#: app/telegram_bot.py:584
+msgid "View Details"
+msgstr ""
+
+#: app/telegram_bot.py:587
+msgid "Deactivate"
+msgstr ""
+
+#: app/telegram_bot.py:587
+msgid "Activate"
+msgstr ""
+
+#: app/telegram_bot.py:615 app/telegram_bot.py:645
+msgid "Gig not found or you are not the owner."
+msgstr ""
+
+#: app/telegram_bot.py:625
+msgid "Back to My Gigs"
+msgstr ""
+
+#: app/telegram_bot.py:675
+msgid "Please provide a valid Gig ID. Usage: /buy <gig_id>"
+msgstr ""
+
+#: app/telegram_bot.py:681
+msgid "Please provide a Gig ID. Usage: /buy <gig_id>"
+msgstr ""
+
+#: app/telegram_bot.py:687
+msgid "Gig not found or inactive."
+msgstr ""
+
+#: app/telegram_bot.py:693
+msgid "You are about to purchase the following gig:"
+msgstr ""
+
+#: app/telegram_bot.py:694
+#, python-brace-format
+msgid "Price: ${price} ({currency})"
+msgstr ""
+
+#: app/telegram_bot.py:697
+msgid "Please confirm your purchase."
+msgstr ""
+
+#: app/telegram_bot.py:703
+msgid "Confirm Purchase"
+msgstr ""
+
+#: app/telegram_bot.py:731 app/telegram_bot.py:1006 app/telegram_bot.py:1180
+msgid "Something went wrong. Please try again."
+msgstr ""
+
+#: app/telegram_bot.py:736
+msgid "Gig not found or is no longer active."
+msgstr ""
+
+#: app/telegram_bot.py:743
+msgid "You cannot buy your own gig."
+msgstr ""
+
+#: app/telegram_bot.py:764
+#, python-brace-format
+msgid ""
+"🛡️ Order #{oid} created successfully!\n"
+"\n"
+"Please deposit *{amt}* {asset} to the following address:\n"
+"`{addr}`\n"
+"\n"
+"After making the payment, use the /confirm_tx command:\n"
+"`/confirm_tx {oid} <your_transaction_id>`"
+msgstr ""
+
+#: app/telegram_bot.py:787
+msgid "Purchase cancelled."
+msgstr ""
+
+#: app/telegram_bot.py:812
+msgid "Please provide a valid Order ID. Usage: /confirm_tx <order_id>"
+msgstr ""
+
+#: app/telegram_bot.py:817
+msgid "Please provide an Order ID. Usage: /confirm_tx <order_id>"
+msgstr ""
+
+#: app/telegram_bot.py:823 app/telegram_bot.py:873 app/telegram_bot.py:955
+#: app/telegram_bot.py:1011 app/telegram_bot.py:1137 app/telegram_bot.py:1187
+msgid "Order not found."
+msgstr ""
+
+#: app/telegram_bot.py:829 app/telegram_bot.py:961 app/telegram_bot.py:1018
+msgid "You are not the buyer for this order."
+msgstr ""
+
+#: app/telegram_bot.py:833
+msgid "This order is not awaiting deposit."
+msgstr ""
+
+#: app/telegram_bot.py:839
+#, python-brace-format
+msgid ""
+"You are confirming payment for Order #{order_id}. Please reply with your "
+"transaction ID (txid)."
+msgstr ""
+
+#: app/telegram_bot.py:864
+msgid ""
+"Something went wrong. Please try again starting with /confirm_tx "
+"<order_id>."
+msgstr ""
+
+#: app/telegram_bot.py:890
+msgid ""
+"⚠️ Invalid deposit. The transaction ID might be wrong, or the deposited "
+"amount is incorrect. Please try again or contact support."
+msgstr ""
+
+#: app/telegram_bot.py:902
+#, python-brace-format
+msgid ""
+"✅ Deposit confirmed for Order #{oid}. The funds are now held in escrow. "
+"The seller has been notified. You can release the funds using /release "
+"{oid} once you are satisfied."
+msgstr ""
+
+#: app/telegram_bot.py:912
+#, python-brace-format
+msgid ""
+"🎉 The buyer has confirmed the payment for Order #{oid}. The funds are now"
+" in escrow."
+msgstr ""
+
+#: app/telegram_bot.py:944
+msgid "Please provide a valid Order ID. Usage: /release <order_id>"
+msgstr ""
+
+#: app/telegram_bot.py:949
+msgid "Please provide an Order ID. Usage: /release <order_id>"
+msgstr ""
+
+#: app/telegram_bot.py:966 app/telegram_bot.py:1023
+msgid "This order's funds are not currently held in escrow."
+msgstr ""
+
+#: app/telegram_bot.py:973
+#, python-brace-format
+msgid ""
+"You are about to release the funds for Order #{order_id}. This action is "
+"irreversible. The funds will be sent to the seller. Please confirm."
+msgstr ""
+
+#: app/telegram_bot.py:978
+msgid "Confirm & Release Funds"
+msgstr ""
+
+#: app/telegram_bot.py:1033
+#, python-brace-format
+msgid ""
+"🔓 Funds for Order #{oid} have been released to the seller. Thank you for "
+"using our service!"
+msgstr ""
+
+#: app/telegram_bot.py:1044 app/telegram_bot.py:1069
+msgid "Leave a Review"
+msgstr ""
+
+#: app/telegram_bot.py:1053
+#, python-brace-format
+msgid ""
+"✅ The buyer has released the funds for Order #{oid}. The order is now "
+"complete. Please leave a review for the buyer."
+msgstr ""
+
+#: app/telegram_bot.py:1078
+#, python-brace-format
+msgid "Your order #{oid} is complete. Please leave a review for the seller."
+msgstr ""
+
+#: app/telegram_bot.py:1101
+msgid "Release cancelled."
+msgstr ""
+
+#: app/telegram_bot.py:1126
+msgid "Please provide a valid Order ID. Usage: /dispute <order_id>"
+msgstr ""
+
+#: app/telegram_bot.py:1131
+msgid "Please provide an Order ID. Usage: /dispute <order_id>"
+msgstr ""
+
+#: app/telegram_bot.py:1145 app/telegram_bot.py:1195
+msgid "You are not part of this order."
+msgstr ""
+
+#: app/telegram_bot.py:1150 app/telegram_bot.py:1200
+msgid "A dispute can only be opened for orders with funds in escrow."
+msgstr ""
+
+#: app/telegram_bot.py:1157
+#, python-brace-format
+msgid ""
+"You are opening a dispute for Order #{order_id}. Please describe the "
+"issue clearly."
+msgstr ""
+
+#: app/telegram_bot.py:1214
+#, python-brace-format
+msgid ""
+"🧑‍⚖️ Dispute opened for Order #{oid}. An administrator will review it "
+"shortly."
+msgstr ""
+
+#: app/telegram_bot.py:1223
+#, python-brace-format
+msgid ""
+"⚖️ New dispute for order {oid} by user {user_id}.\n"
+"Reason: {reason}"
+msgstr ""
+
+#: app/telegram_bot.py:1248
+msgid "Order not found or you are not part of it."
+msgstr ""
+
+#: app/telegram_bot.py:1252
+msgid "Buyer"
+msgstr ""
+
+#: app/telegram_bot.py:1252
+msgid "Seller"
+msgstr ""
+
+#: app/telegram_bot.py:1255
+#, python-brace-format
+msgid ""
+"🛍️ *Managing Order #{oid}*\n"
+"\n"
+"Gig: *{gig_title}*\n"
+"Price: ${price} ({currency})\n"
+"Status: `{status}`\n"
+"Your Role: {user_role}\n"
+"\n"
+"Choose an action:"
+msgstr ""
+
+#: app/telegram_bot.py:1276
+msgid "Confirm Payment"
+msgstr ""
+
+#: app/telegram_bot.py:1284
+msgid "Release Funds"
+msgstr ""
+
+#: app/telegram_bot.py:1287 app/telegram_bot.py:1296
+msgid "Open Dispute"
+msgstr ""
+
+#: app/telegram_bot.py:1302
+msgid "⬅️ Back to Orders"
+msgstr ""
+
+#: app/telegram_bot.py:1329
+msgid "You have no orders."
+msgstr ""
+
+#: app/telegram_bot.py:1336
+msgid ""
+"📦 *Your Orders:*\n"
+"\n"
+msgstr ""
+
+#: app/telegram_bot.py:1339
+#, python-brace-format
+msgid "#{oid} - *{gig_title}* - Status: `{status}`\n"
+msgstr ""
+
+#: app/telegram_bot.py:1345
+#, python-brace-format
+msgid "Manage Order #{oid}"
+msgstr ""
+
+#: app/telegram_bot.py:1391
+msgid "Not rated yet"
+msgstr ""
+
+#: app/telegram_bot.py:1394
+#, python-brace-format
+msgid ""
+"👤 *Your Profile*\n"
+"\n"
+"**Username:** @{username}\n"
+"**Rating:** {rating} ({reviews} reviews)\n"
+"**Completed Orders:** {orders}"
+msgstr ""

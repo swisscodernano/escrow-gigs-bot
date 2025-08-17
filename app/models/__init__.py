@@ -3,6 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.db_core import Base
+from .feedback import Feedback
 
 
 class User(Base):
