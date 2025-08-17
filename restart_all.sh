@@ -2,8 +2,8 @@
 set -euo pipefail
 
 echo "==> Riavvio di tutti i servizi..."
-docker compose down
-docker compose up -d
+sudo systemctl restart app.service bot.service worker.service
 
 echo "==> Stato servizi:"
-docker compose ps
+sudo systemctl status app.service bot.service worker.service
+
