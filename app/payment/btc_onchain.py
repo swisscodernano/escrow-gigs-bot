@@ -1,66 +1,30 @@
-import os, httpx
-from decimal import Decimal
-from typing import Tuple
-from bip_utils import Bip44, Bip44Coins, Bip44Changes, Bip44Levels, Bip44PublicKey
+from bip_utils import (
+    Bip39MnemonicGenerator,
+    Bip39SeedGenerator,
+    Bip44,
+    Bip44Changes,
+    Bip44Coins,
+)
 
-# Env
-ENV_NET = os.getenv("BTC_NETWORK", "testnet").lower()
-ESPLORA_URL = "https://blockstream.info/testnet/api" if ENV_NET == 'testnet' else "https://blockstream.info/api"
-BTC_XPUB = os.getenv("BTC_XPUB", "")
 
-def _get_xpub_key():
-    if not BTC_XPUB:
-        raise RuntimeError("BTC_XPUB must be set in .env")
-    return Bip44PublicKey.FromExtended(BTC_XPUB)
+def new_deposit_address(order_id: int):
+    # Generate a 12-word mnemonic
+    mnemonic = Bip39MnemonicGenerator().FromWordsNumber(12)
 
-def derive_address(order_id: int) -> Tuple[str, str]:
-    """Deriva un indirizzo di ricezione P2WPKH (BIP84) per un dato ID ordine."""
-    xpub_key = _get_xpub_key()
-    
-    # Deriviamo la chiave per il change level (0 = external) e poi per l'address index
-    bip44_chg = Bip44.FromKey(xpub_key, Bip44Levels.CHANGE).Change(Bip44Changes.CHAIN_EXT)
-    bip44_addr = bip44_chg.AddressIndex(order_id)
-    
-    path = f"m/0/{order_id}" # Percorso relativo all'account
-    return bip44_addr.PublicKey().ToAddress(), path
+    # Generate the seed from the mnemonic
+    seed_bytes = Bip39SeedGenerator(mnemonic).Generate()
 
-async def _esplora_get(path: str):
-    async with httpx.AsyncClient(timeout=15.0) as c:
-        r = await c.get(ESPLORA_URL + path)
-        r.raise_for_status()
-        return r.json()
+    # Create a BIP44 wallet for Bitcoin
+    bip44_mst_ctx = Bip44.FromSeed(seed_bytes, Bip44Coins.BITCOIN)
 
-async def validate_deposit(address: str, txid: str, expected_btc: Decimal, min_confs: int = 1) -> bool:
-    """
-    Valida una transazione di deposito cercando uno specifico TXID e verificando
-    l'importo e le conferme.
-    """
-    try:
-        # 1. Ottieni i dettagli della transazione
-        tx_details = await _esplora_get(f"/tx/{txid}")
-        
-        # 2. Controlla le conferme
-        confs = tx_details.get("status", {}).get("block_height", 0)
-        if not confs or confs < min_confs:
-            # Per ora, consideriamo 0 conferme come valide per il testing, 
-            # ma in produzione `min_confs` dovrebbe essere almeno 1.
-            # In un sistema reale, si aspetterebbe la conferma.
-            pass
+    # Derive the first account
+    bip44_acc_ctx = bip44_mst_ctx.Purpose().Coin().Account(0)
 
-        # 3. Verifica l'output corretto
-        sats_expected = int(expected_btc * Decimal(1e8))
-        output_found = False
-        for vout in tx_details.get("vout", []):
-            if vout.get("scriptpubkey_address") == address and vout.get("value", 0) >= sats_expected:
-                output_found = True
-                break
-        
-        return output_found
+    # Derive the external chain
+    bip44_chg_ctx = bip44_acc_ctx.Change(Bip44Changes.CHAIN_EXT)
 
-    except httpx.HTTPStatusError as e:
-        # Se la transazione non viene trovata (404) o c'è un altro errore, non è valida.
-        print(f"Errore API durante la validazione della tx {txid}: {e}")
-        return False
-    except Exception as e:
-        print(f"Errore imprevisto durante la validazione della tx {txid}: {e}")
-        return False
+    # Derive the address for the order
+    bip44_addr_ctx = bip44_chg_ctx.AddressIndex(order_id)
+
+    # Return the address
+    return bip44_addr_ctx.PublicKey().ToAddress()

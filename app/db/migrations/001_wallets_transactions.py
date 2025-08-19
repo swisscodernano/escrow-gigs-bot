@@ -1,6 +1,15 @@
 """Create wallets and transactions tables"""
 
-from sqlalchemy import Table, Column, Integer, String, Numeric, DateTime, ForeignKey, MetaData
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    MetaData,
+    Numeric,
+    String,
+    Table,
+)
 from sqlalchemy.sql import func
 
 metadata = MetaData()

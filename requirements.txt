@@ -17,3 +17,4 @@ celery==5.4.0
 redis[hiredis]==5.0.7
 Babel==2.15.0
 requests==2.32.3
+bitcoinlib==0.6.15

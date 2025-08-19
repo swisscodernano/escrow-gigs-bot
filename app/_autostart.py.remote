@@ -1,26 +1,20 @@
 import asyncio
-import logging
 import os
-
-from dotenv import load_dotenv
+import logging
+from app.telegram_bot import (
+    cmd_start,
+    cmd_help,
+    cmd_newgig,
+    cmd_mygigs,
+    cmd_buy,
+    cmd_release,
+    # Assuming a cmd_cancel might exist or be needed
+)
 from telegram import BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler
 
-from app.telegram_bot import (  # Assuming a cmd_cancel might exist or be needed
-    cmd_buy,
-    cmd_help,
-    cmd_mygigs,
-    cmd_newgig,
-    cmd_release,
-    cmd_start,
-)
-
-# Load environment variables from .env file
-load_dotenv()
-
 # Use the logger configured in telegram_bot
 log = logging.getLogger(__name__)
-
 
 async def run_bot_background():
     token = os.getenv("TELEGRAM_TOKEN", "").strip()
@@ -65,9 +59,7 @@ async def run_bot_background():
     except asyncio.CancelledError:
         log.info("Bot operation was cancelled.")
     except Exception as e:
-        log.critical(
-            f"A critical error occurred in the bot's main loop: {e}", exc_info=True
-        )
+        log.critical(f"A critical error occurred in the bot's main loop: {e}", exc_info=True)
     finally:
         log.info("Shutting down bot...")
         try:
@@ -76,9 +68,6 @@ async def run_bot_background():
             await app.stop()
             await app.shutdown()
             log.info("Telegram bot stopped cleanly.")
-        except Exception as e:
-            log.error(f"Error during bot shutdown: {e}", exc_info=True)
-
 
 if __name__ == "__main__":
     asyncio.run(run_bot_background())

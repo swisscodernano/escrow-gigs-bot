@@ -1,0 +1,4 @@
+black==24.4.2
+isort==5.13.2
+mypy==1.11.0
+SQLAlchemy[mypy]==2.0.31
