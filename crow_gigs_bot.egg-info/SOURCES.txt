@@ -1,0 +1,8 @@
+pyproject.toml
+app/__init__.py
+app/main.py
+crow_gigs_bot.egg-info/PKG-INFO
+crow_gigs_bot.egg-info/SOURCES.txt
+crow_gigs_bot.egg-info/dependency_links.txt
+crow_gigs_bot.egg-info/requires.txt
+crow_gigs_bot.egg-info/top_level.txt
