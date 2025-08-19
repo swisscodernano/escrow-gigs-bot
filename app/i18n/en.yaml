@@ -1,0 +1,25 @@
+start:
+  welcome: "Welcome to Escrow Gigs Bot 👋\nChoose an action:"
+  placeholder: "Choose an action…"
+  buttons:
+    newgig: "/newgig"
+    mygigs: "/mygigs"
+    buy: "/buy"
+    release: "/release"
+    help: "/help"
+    cancel: "/cancel"
+help:
+  text: "Commands:\n/newgig – Create a gig\n/mygigs – My gigs\n/buy – Buy / Deposit\n/release – Release escrow\n/cancel – Cancel\n/help – Help"
+usage:
+  newgig: "Use: /newgig <title> | <price_usd> | <description>"
+  release: "Use: /release <order_id>"
+misc:
+  unavailable: "This command is temporarily unavailable."
+commands:
+  start: "Open the main menu"
+  help: "How it works & commands"
+  newgig: "Create a gig"
+  mygigs: "Your gigs"
+  buy: "Buy / Deposit"
+  release: "Release escrow"
+  cancel: "Cancel"

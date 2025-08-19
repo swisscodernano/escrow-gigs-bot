@@ -1,0 +1,9 @@
+
+# Virtual Environment
+venv/
+*.pyc
+__pycache__/
+.DS_Store
+test.db
+escrow_gigs_bot.egg-info/
+

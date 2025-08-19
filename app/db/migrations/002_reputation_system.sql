@@ -1,0 +1,2 @@
+ALTER TABLE users ADD COLUMN positive_feedback INTEGER DEFAULT 0;
+ALTER TABLE users ADD COLUMN negative_feedback INTEGER DEFAULT 0;

@@ -1,0 +1,9 @@
+services:
+  setup:
+    build:
+      context: .
+      dockerfile: Dockerfile.setup
+    volumes:
+      - ./:/app
+    environment:
+      - BTC_NETWORK=testnet

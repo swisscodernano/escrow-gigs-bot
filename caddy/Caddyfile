@@ -1,0 +1,4 @@
+escrow.swisscoordinator.app {
+  encode gzip
+  reverse_proxy app:8000
+}

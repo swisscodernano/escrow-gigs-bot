@@ -1,0 +1,3 @@
+# Keep PTB 20.x happy
+httpx==0.26.0
+httpcore==1.0.9
