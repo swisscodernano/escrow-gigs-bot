@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dispute Details</title>
+</head>
+<body>
+    <h1>Dispute #{{ dispute.id }}</h1>
+    <h2>Order Details</h2>
+    <p><strong>Gig Title:</strong> {{ order.gig.title }}</p>
+    <p><strong>Price:</strong> {{ order.expected_amount }} {{ order.gig.currency }}</p>
+    <p><strong>Buyer:</strong> {{ order.buyer.username }}</p>
+    <p><strong>Seller:</strong> {{ order.seller.username }}</p>
+
+    <h2>Dispute Details</h2>
+    <p><strong>Reason:</strong> {{ dispute.reason }}</p>
+
+    <h2>Actions</h2>
+    <form action="/admin/disputes/{{ dispute.id }}/resolve/buyer" method="post">
+        <button type="submit">Rule in Favor of Buyer</button>
+    </form>
+    <form action="/admin/disputes/{{ dispute.id }}/resolve/seller" method="post">
+        <button type="submit">Rule in Favor of Seller</button>
+    </form>
+</body>
+</html>
