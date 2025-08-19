@@ -17,6 +17,7 @@ class Gig(Base):
     seller_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), index=True)
     title: Mapped[str] = mapped_column(String(140))
     description: Mapped[str] = mapped_column(Text, default="")
+    category: Mapped[str] = mapped_column(String(64), index=True)
     price_usd: Mapped[float] = mapped_column(Numeric(18,2))
     currency: Mapped[str] = mapped_column(String(16), default="USDT-TRON")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -32,9 +33,8 @@ class Order(Base):
     status: Mapped[str] = mapped_column(String(32), index=True)  # AWAIT_DEPOSIT, FUNDS_HELD, RELEASED, REFUNDED, DISPUTE
     deposit_address: Mapped[str] = mapped_column(String(128), default="")
     expected_amount: Mapped[float] = mapped_column(Numeric(18,2), default=0)
-    fee_amount: Mapped[float] = mapped_column(Numeric(18,2), default=0)
     txid: Mapped[str] = mapped_column(String(128), default="")
-    escrow_fee_pct: Mapped[float] = mapped_column(Numeric(5,2), default=5.00)
+    escrow_fee_pct: Mapped[float] = mapped_column(Numeric(5,2), default=8.00)
     created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     gig = relationship("Gig")
