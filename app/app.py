@@ -3,7 +3,10 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Response
+from fastapi.staticfiles import StaticFiles
+from starlette.templating import Jinja2Templates
 
+from app.api.admin import admin_router  # Import the admin router
 from app.telegram_bot import run_bot_background
 
 load_dotenv()
@@ -19,6 +22,13 @@ async def lifespan(app: FastAPI):
 
 
 fastapi_app = FastAPI(lifespan=lifespan)
+
+# Mount static files and templates
+fastapi_app.mount("/static", StaticFiles(directory="app/static"), name="static")
+templates = Jinja2Templates(directory="app/templates")
+
+# Include the admin router
+fastapi_app.include_router(admin_router, prefix="/admin", tags=["admin"])
 
 
 @fastapi_app.get("/health")
