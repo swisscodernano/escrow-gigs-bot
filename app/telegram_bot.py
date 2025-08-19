@@ -1,10 +1,10 @@
 import asyncio
 from decimal import Decimal
 from app.config import settings
-from db import SessionLocal
-from models import User, Gig, Order, Dispute
-from payment.ledger import new_deposit_address
-from payment.tron_stub import validate_deposit_tx
+from app.db import SessionLocal
+from app.models import User, Gig, Order, Dispute
+from app.payment.ledger import new_deposit_address
+from app.payment.tron_stub import validate_deposit_tx
 
 from telegram import Update
 from telegram.ext import Defaults, Application, CommandHandler, ContextTypes
@@ -54,7 +54,12 @@ async def cmd_newgig(update: Update, context: ContextTypes.DEFAULT_TYPE):
     seller = db.query(User).filter(User.tg_id==str(user.tg_id)).first()
     g = Gig(seller_id=seller.id, title=title, description=descr, price_usd=price, currency=settings.PRIMARY_ASSET)
     db.add(g); db.commit(); db.refresh(g); db.close()
-    await update.message.reply_text(f"✅ Annuncio #{g.id} creato: *{title}* — ${price} ({settings.PRIMARY_ASSET})")
+    fee = price * Decimal("0.05")
+    net_amount = price - fee
+    await update.message.reply_text(
+        f"✅ Annuncio #{g.id} creato: *{title}* — ${price:.2f} ({settings.PRIMARY_ASSET}).\n"
+        f"Dopo una commissione del 5%, riceverai **${net_amount:.2f}**."
+    )
 
 async def cmd_newgigbtc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = await ensure_user(update.effective_user)
@@ -79,18 +84,23 @@ async def cmd_newgigbtc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     seller = db.query(User).filter(User.tg_id==str(user.tg_id)).first()
     g = Gig(seller_id=seller.id, title=title, description=descr, price_usd=price_btc, currency="BTC-ONCHAIN")
     db.add(g); db.commit(); db.refresh(g); db.close()
-    await update.message.reply_text(f"✅ Annuncio BTC #{g.id} creato: *{title}* — {price_btc} BTC")
+    fee = price_btc * Decimal("0.05")
+    net_amount = price_btc - fee
+    await update.message.reply_text(
+        f"✅ Annuncio BTC #{g.id} creato: *{title}* — {price_btc} BTC.\n"
+        f"Dopo una commissione del 5%, riceverai **{net_amount}** BTC."
+    )
 
 async def cmd_listings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db = db_session()
-    gigs = db.query(Gig).join(User, Gig.seller_id == User.id).filter(Gig.active==True).order_by(Gig.id.desc()).limit(20).all()
+    gigs = db.query(Gig).filter(Gig.active==True).order_by(Gig.id.desc()).limit(20).all()
     db.close()
     if not gigs:
         await update.message.reply_text("Nessun annuncio al momento. /newgig")
         return
     lines = ["📋 *Annunci:*"]
     for g in gigs:
-        lines.append(f"#{g.id} — *{g.title}* — ${g.price_usd} — {g.currency} — Seller: @{g.seller.username} (+{g.seller.positive_feedback}/-{g.seller.negative_feedback})")
+        lines.append(f"#{g.id} — *{g.title}* — ${g.price_usd} — {g.currency}")
     lines.append("\nCompra: /buy <id>")
     await update.message.reply_text("\n".join(lines))
 
@@ -103,7 +113,7 @@ async def cmd_mygigs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not gigs:
         await update.message.reply_text("Non hai annunci. /newgig")
         return
-    lines = [f"🧾 *I tuoi annunci:* (+{seller.positive_feedback}/-{seller.negative_feedback})"]
+    lines = ["🧾 *I tuoi annunci:*"]
     for g in gigs:
         lines.append(f"#{g.id} — *{g.title}* — ${g.price_usd} — {g.currency} — {'ON' if g.active else 'OFF'}")
     await update.message.reply_text("\n".join(lines))
@@ -126,14 +136,16 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Annuncio non trovato o inattivo.")
         return
     buyer_obj = db.query(User).filter(User.tg_id==str(buyer.tg_id)).first()
+    fee = g.price_usd * Decimal("0.05")
     o = Order(gig_id=g.id, buyer_id=buyer_obj.id, seller_id=g.seller_id,
-              status="AWAIT_DEPOSIT", expected_amount=g.price_usd, escrow_fee_pct=8.00)
+              status="AWAIT_DEPOSIT", expected_amount=g.price_usd, escrow_fee_pct=5.00, fee_amount=fee)
     db.add(o); db.commit(); db.refresh(o)
     dep = new_deposit_address(o.id, g.currency)
     o.deposit_address = dep.address
     db.commit(); db.refresh(o); db.close()
     await update.message.reply_text(
         "🛡️ Ordine creato. Deposita *{amt}* in {asset} all'indirizzo:\n`{addr}`\n\n"
+        "Una commissione del 5% sarà detrattata dal venditore al completamento.\n"
         "Dopo il pagamento: /confirm_tx {oid} <txid>"
         .format(amt=g.price_usd, asset=g.currency, addr=o.deposit_address, oid=o.id))
 
@@ -158,7 +170,7 @@ async def cmd_confirm_tx(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if o.gig.currency.startswith("USDT-TRON"):
         ok = await validate_deposit_tx(txid, Decimal(o.expected_amount))
     elif o.gig.currency.startswith("BTC-ONCHAIN"):
-        from payment import btc_onchain
+        from app.payment import btc_onchain
         ok = await btc_onchain.validate_deposit(o.deposit_address, Decimal(o.expected_amount))
     if not ok:
         db.close()
@@ -189,11 +201,9 @@ async def cmd_release(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Ordine non in garanzia.")
         return
     o.status = "RELEASED"
-    seller = db.query(User).filter(User.id==o.seller_id).first()
-    if seller:
-        seller.positive_feedback += 1
+    net_amount = o.expected_amount - o.fee_amount
     db.commit(); db.refresh(o); db.close()
-    await update.message.reply_text("🔓 Rilascio segnato. (Invio on-chain da worker/admin)")
+    await update.message.reply_text(f"✅ Rilascio segnato. Netto da pagare al venditore: ${net_amount:.2f}. (Invio on-chain da worker/admin)")
 
 async def cmd_dispute(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = (update.message.text or "").split(" ", 2)
@@ -216,7 +226,6 @@ async def cmd_dispute(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     d = Dispute(order_id=o.id, opened_by=user_obj.id, reason=reason, status="OPEN")
     db.add(d); db.commit(); db.close()
-    # TODO: implement manual dispute resolution logic, which should update seller's negative_feedback
     await update.message.reply_text("🧑‍⚖️ Disputa aperta. Verifica in corso.")
     if settings.ADMIN_USER_ID:
         try:

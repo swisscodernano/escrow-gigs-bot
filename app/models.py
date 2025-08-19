@@ -1,7 +1,7 @@
 from sqlalchemy import Integer, String, Numeric, Boolean, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
-from db import Base
+from app.db import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -9,8 +9,6 @@ class User(Base):
     tg_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     username: Mapped[str] = mapped_column(String(64), default="")
     lang: Mapped[str] = mapped_column(String(8), default="en")
-    positive_feedback: Mapped[int] = mapped_column(Integer, default=0)
-    negative_feedback: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 class Gig(Base):
@@ -34,8 +32,9 @@ class Order(Base):
     status: Mapped[str] = mapped_column(String(32), index=True)  # AWAIT_DEPOSIT, FUNDS_HELD, RELEASED, REFUNDED, DISPUTE
     deposit_address: Mapped[str] = mapped_column(String(128), default="")
     expected_amount: Mapped[float] = mapped_column(Numeric(18,2), default=0)
+    fee_amount: Mapped[float] = mapped_column(Numeric(18,2), default=0)
     txid: Mapped[str] = mapped_column(String(128), default="")
-    escrow_fee_pct: Mapped[float] = mapped_column(Numeric(5,2), default=8.00)
+    escrow_fee_pct: Mapped[float] = mapped_column(Numeric(5,2), default=5.00)
     created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     gig = relationship("Gig")
