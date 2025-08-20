@@ -1163,9 +1163,9 @@ async def cmd_orders(
 
 async def run_bot_background():
     log = logging.getLogger(__name__)
-    token = os.getenv("TELEGRAM_TOKEN", "").strip()
+    token = os.getenv("BOT_TOKEN", "").strip()
     if not token:
-        log.warning("TELEGRAM_TOKEN not set: bot NOT started.")
+        log.warning("BOT_TOKEN not set: bot NOT started.")
         return
 
     log.info("Building bot application...")
